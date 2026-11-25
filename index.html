@@ -462,16 +462,9 @@ ul, ol { padding: 0; list-style: none; }
       <div id="up-input-step">
         <label for="up-text" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Rezepttext</label>
         <textarea id="up-text" class="up-text" placeholder="Rezept hier einfügen, zum Beispiel:&#10;&#10;Butter Chicken Burritos&#10;Zutaten&#10;◦ 800 g Hähnchenbrust&#10;…&#10;Zubereitung&#10;1. …&#10;Nährwerte (pro Burrito)&#10;• 375 kcal"></textarea>
-        <div class="file-chip" id="up-file" hidden>
-          <img id="up-file-img" alt="">
-          <span id="up-file-name"></span>
-          <button type="button" class="icon-btn" id="up-file-rm" aria-label="Bild entfernen">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-          </button>
-        </div>
         <div class="up-actions">
           <label class="btn btn-line" for="up-pick" id="up-pick-label">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M9 4.5V3.5h6v1M9.5 10h5M9.5 14h5"/></svg>
             <span id="up-pick-text">Datei</span>
           </label>
           <input type="file" id="up-pick" accept=".txt,.md,text/plain" hidden>
@@ -480,7 +473,6 @@ ul, ol { padding: 0; list-style: none; }
         <p class="up-msg" id="up-msg" role="status"></p>
       </div>
       <div id="up-preview-step" hidden>
-        <p class="up-msg" id="pv-note"></p>
         <div class="pv" id="pv-list" style="margin-top:4px"></div>
         <div class="up-actions">
           <button type="button" class="btn btn-line" id="pv-back">Zurück</button>
@@ -1255,13 +1247,15 @@ window.addEventListener("hashchange", route);
 route();
 
 /* ============================== Hochladen ============================== */
-let DB = null, SAMPLE = null, imagesOK = false, noClaude = false;
-let upImage = null, upImageURL = "", upCtl = null, pending = [];
+/* Rezepte werden direkt in der App gelesen (ohne Claude). Gespeichert wird im
+   Artifact-Speicher, wenn die App in Claude läuft, sonst auf dem Gerät. */
+let backend = null, pending = [];
+const IN_CLAUDE = !!(window.claude && typeof window.claude.use === "function");
 const sheet = $("#sheet"), upText = $("#up-text"), upGo = $("#up-go"), upPick = $("#up-pick"), upMsg = $("#up-msg");
 
 const slugify = t => norm(t).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "rezept";
 
-/* Bringt ein Rezept (von Claude, vom Text-Leser oder aus dem Speicher) in die Form der App. */
+/* Bringt ein Rezept (vom Leser oder aus dem Speicher) in die Form der App. */
 function normalize(x) {
   if (!x || typeof x !== "object") return null;
   const str = (v, max = 400) => typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : (typeof v === "number" ? String(v) : "");
@@ -1299,126 +1293,184 @@ function normalize(x) {
   };
 }
 
-/* Ohne Claude: liest Rezepte im gewohnten Format (Titel, Zutaten, Zubereitung, Nährwerte). */
-const MEAT_RE = /hahnchen|huhn|huhner|chicken|rinder|rindfleisch|beef|schwein|pork|schinken|speck|bacon|hackfleisch|faschiert|pute|truthahn|lamm|wurst|salami|chorizo|kebab|gyros|steak|sardell|thunfisch|lachs|fisch|garnele|shrimp|prosciutto|kalb|ente/;
-const SWEET_RE = /kuchen|cake|brownie|cookie|keks|muffin|pancake|pfannkuchen|waffel|dessert|pudding|tiramisu|schoko|kakao|streusel|vanille|zucker|ahornsirup|suss|eis\b|porridge|oats/;
+/* ---------- Der Rezept-Leser ---------- */
+const BUL = /^[◦•\-–—*▪●·○◆►✓✔]\s*/;
+const H_ING = /^(zutaten|ingredients|du brauchst|das brauchst du|einkaufsliste)\b.*$/i;
+const H_STEPS = /^(zubereitung|anleitung|so geht'?s|so wird'?s gemacht|schritte|instructions|method|zubereiten)\b.*$/i;
+const H_NUT = /^(nährwerte|naehrwerte|nährwertangaben|makros|macros|nutrition)\b/i;
+const MEAT_RE = /hahnchen|chicken|huhn|huhner|rinder|rindfleisch|beef|schwein|pork|schinken|speck|bacon|hackfleisch|(^|[^a-z])hack([^a-z]|$)|faschiert|gehacktes|pute|truthahn|lamm|wurst|salami|chorizo|kebab|gyros|steak|sardell|thunfisch|lachs|fisch|garnele|shrimp|prosciutto|kalb|meeresfrucht|tintenfisch|muschel|(^|[^a-z])ente([^a-z]|$)/;
+const SWEET_TITLE = /kuchen|cake|brownie|cookie|keks|muffin|pancake|pfannkuchen|palatschinke|waffel|dessert|pudding|tiramisu|(^|[^a-z])eis([^a-z]|$)|porridge|oats|granola|bananenbrot|banana bread|crumble|mousse|creme brulee|donut|zimtschnecke|cinnamon/;
+const SWEET_RE = /schoko|kakao|streusel|vanille|zucker|ahornsirup|agavendicksaft|suss|chunky flavo|puddingpulver|marmelade|nutella|beeren|banane|zimt/;
+const SAVORY_RE = /zwiebel|knoblauch|bruhe|sojasauce|senf|ketchup|tomate|chili|oregano|curry|parmesan|mozzarella|cheddar/;
+const NUT_KEY = { kcal: "kcal", kalorien: "kcal", eiweiss: "protein", protein: "protein", kohlenhydrate: "carbs", kh: "carbs", carbs: "carbs", fett: "fat", fat: "fat" };
+const NUT_LABEL = "(kcal|kalorien|eiweiss|protein|kohlenhydrate|kh|carbs|fett|fat)(?![a-z])";
+
+function readNutrition(line, r) {
+  const t = norm(line);
+  let hit = false;
+  const set = (label, val) => {
+    const key = NUT_KEY[label], v = parseFloat(val.replace(",", "."));
+    if (key && Number.isFinite(v) && r.nutrition[key] === undefined) { r.nutrition[key] = v; hit = true; }
+  };
+  for (const m of t.matchAll(new RegExp("(\\d+(?:[.,]\\d+)?)\\s*(?:g|gramm)?\\s*" + NUT_LABEL, "g"))) set(m[2], m[1]);
+  for (const m of t.matchAll(new RegExp(NUT_LABEL + "\\s*[:=]?\\s*(?:ca\\.?\\s*|~\\s*)?(\\d+(?:[.,]\\d+)?)", "g"))) set(m[1], m[2]);
+  if (hit && /(^|[^a-z])(ca|etwa|ungefahr)([^a-z]|$)|~/.test(t)) r.approx = true;
+  if (hit && !r.per) { const pm = line.match(/\bpro\s+([A-Za-zÄÖÜäöüß-]+)/i); if (pm) r.per = "pro " + pm[1]; }
+  return hit;
+}
+function readYield(text) {
+  const t = text.replace(/\s+/g, " ");
+  let m = t.match(/(?:für|ergibt|reicht für|macht)\s+(\d+)\s+(Portionen|Personen|Stück|Stk\.?)/i) || t.match(/\((\d+)\s+(Portionen|Stück)\)/i);
+  if (m) return /^(Portionen|Personen)$/i.test(m[2]) ? `${m[1]} Portionen` : `${m[1]} Stück`;
+  m = t.match(/auf\s+(\d+)\s+(?:Portionen|Meal-Prep-Boxen|Boxen|Teller|Schüsseln)/i);
+  if (m) return `${m[1]} Portionen`;
+  m = t.match(/in\s+(\d+)\s+gleich große\s+(Stücke|Portionen|Teile)/i);
+  if (m) return m[2].toLowerCase() === "portionen" ? `${m[1]} Portionen` : `${m[1]} Stück`;
+  return "";
+}
 function splitItem(line) {
   let s = line, hint = "";
   const pm = s.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
   if (pm) { s = pm[1]; hint = pm[2]; }
-  const ng = s.match(/^(.*?)\s+(nach (?:Geschmack|Bedarf|Belieben)|optional)$/i);
-  if (ng) { s = ng[1].replace(/,\s*$/, ""); hint = [ng[2], hint].filter(Boolean).join(", "); }
-  const UNIT = "(?:kg|g|mg|ml|cl|dl|l|EL|TL|Prisen?|Tassen?|Stück|Stk\\.?|Pck\\.?|Packung(?:en)?|Päckchen|Dosen?|Bund|Zehen?|Scheiben?|Becher|cm|Handvoll|Msp\\.?)";
-  const re = new RegExp("^((?:ca\\.\\s*)?(?:\\d+(?:[.,]\\d+)?|[½¼¾⅓⅔])(?:\\s*[½¼¾⅓⅔])?(?:\\s*[–-]\\s*\\d+(?:[.,]\\d+)?)?(?:\\s*" + UNIT + "(?![A-Za-zÄÖÜäöüß]))?\\.?)\\s+(.+)$", "i");
+  const ng = s.match(/^(.*?)[,\s]+(nach (?:Geschmack|Bedarf|Belieben)|optional|zum (?:Anbraten|Garnieren|Bestreuen|Servieren))$/i);
+  if (ng && ng[1]) { s = ng[1].replace(/,\s*$/, ""); hint = [ng[2], hint].filter(Boolean).join(", "); }
+  const UNIT = "(?:kg|g|mg|ml|cl|dl|l|EL|TL|Prisen?|Tassen?|Stück|Stk\\.?|Pck\\.?|Packung(?:en)?|Päckchen|Dosen?|Bund|Zehen?|Scheiben?|Becher|cm|Handvoll|Msp\\.?|Spritzer|Schuss|Glas|Gläser)";
+  const NUM = "(?:\\d+(?:[.,]\\d+)?(?:\\s*[½¼¾⅓⅔])?|[½¼¾⅓⅔])";
+  const re = new RegExp("^((?:ca\\.\\s*)?" + NUM + "(?:\\s*[–-]\\s*" + NUM + ")?(?:\\s*" + UNIT + "(?![A-Za-zÄÖÜäöüß]))?\\.?)\\s+(.+)$", "i");
   let amount = "", name = s;
   const m = s.match(re);
   if (m) { amount = m[1].trim(); name = m[2]; }
-  const cm = name.match(/^([^,]+),\s*(.+)$/);
+  else {
+    const m2 = s.match(/^(etwas|eine? Prise|1 Prise|ein Schuss|eine? Handvoll)\s+(.+)$/i);
+    if (m2) { amount = ""; name = m2[2]; hint = [m2[1].toLowerCase(), hint].filter(Boolean).join(", "); }
+  }
+  const cm = name.match(/^([^,]+),\s*([a-zäöüß½¼¾\d].*)$/);
   if (cm) { name = cm[1]; hint = [cm[2], hint].filter(Boolean).join(", "); }
-  return { amount, name: name.trim(), hint: hint.trim() };
+  name = name.trim();
+  return { amount, name, hint: hint.trim() };
+}
+function classify(r) {
+  const names = r.groups.flatMap(g => g.items.map(it => it.name)).join(" ");
+  const t = norm(r.title + " " + names), title = norm(r.title);
+  r.meat = MEAT_RE.test(t);
+  r.kind = !r.meat && (SWEET_TITLE.test(title) || (SWEET_RE.test(t) && !SAVORY_RE.test(t))) ? "suess" : "herzhaft";
 }
 function parseLocal(text) {
-  const lines = text.replace(/\r/g, "").split("\n").map(l => l.replace(/ /g, " ").trim());
-  const BUL = /^[◦•\-–—*▪●·]\s*/;
-  let zi = lines.map((l, i) => /^zutaten\b/i.test(l) ? i : -1).filter(i => i >= 0);
+  const lines = text.replace(/\r/g, "").split("\n").map(l => l.replace(/[ \t]/g, " ").replace(/\s+/g, " ").trim());
+  const isMeta = l => !l || BUL.test(l) || /^\d/.test(l) || H_NUT.test(l) || H_STEPS.test(l) || /^rezepte?:?$/i.test(l);
+  let zi = lines.map((l, i) => H_ING.test(l) && l.length < 40 ? i : -1).filter(i => i >= 0);
+  const hasHeader = zi.length > 0;
   let starts;
-  if (zi.length) {
-    starts = zi.map(i => { let t = i - 1; while (t >= 0 && (!lines[t] || BUL.test(lines[t]) || /^rezepte?:?$/i.test(lines[t]))) t--; return t; });
+  if (hasHeader) {
+    // Titel = erste Zeile des Absatzes über "Zutaten" (Beschreibungszeilen darunter werden übersprungen)
+    starts = zi.map((i, k) => {
+      const floor = k ? zi[k - 1] : -1;
+      let t = i - 1;
+      while (t > floor && isMeta(lines[t])) t--;
+      if (t <= floor) return -1;
+      while (t - 1 > floor && !isMeta(lines[t - 1])) t--;
+      return t;
+    });
   } else {
     const t0 = lines.findIndex(Boolean);
     if (t0 < 0) return [];
     zi = [t0]; starts = [t0];
   }
   return starts.map((st, k) => {
-    const end = k + 1 < starts.length ? starts[k + 1] : lines.length;
-    const title = (st >= 0 ? lines[st] : "Rezept").replace(/^high[\s-]?protein\s+/i, "");
+    const end = k + 1 < starts.length ? (starts[k + 1] >= 0 ? starts[k + 1] : zi[k + 1]) : lines.length;
+    const title = (st >= 0 ? lines[st] : "Neues Rezept").replace(/^(high[\s-]?protein|rezept:?)\s+/i, "").replace(/\s*\(\d+\s*(Portionen|Stück|Personen)\)\s*$/i, "").replace(/[:!]+$/, "").trim() || "Neues Rezept";
     const r = { title, groups: [], steps: [], nutrition: {}, approx: false, per: "", yield: "" };
-    let mode = "ing", g = null, step = null;
+    const pre = hasHeader && st >= 0 ? lines.slice(st + 1, zi[k]) : [];
+    for (const l of pre) if (l) readNutrition(l, r);
+    // Abschnitte bestimmen
+    const ing = [], stp = [], nut = [];
+    let mode = "ing";
     for (let i = zi[k] + 1; i < end; i++) {
       const raw = lines[i];
       if (!raw) continue;
-      if (/^zubereitung\b/i.test(raw)) { mode = "steps"; continue; }
-      const nm = raw.match(/^nährwerte\b[^(]*(?:\((.*?)\))?/i);
+      if (H_STEPS.test(raw) && raw.length < 40) { mode = "steps"; continue; }
+      const nm = raw.match(/^(?:nährwerte|naehrwerte|nährwertangaben|makros|macros|nutrition)\b[^(]*(?:\((.*?)\))?/i);
       if (nm) {
         mode = "nut";
-        if (nm[1]) { if (/\bca\./i.test(nm[1])) r.approx = true; r.per = nm[1].replace(/,?\s*ca\.?/i, "").trim(); }
+        if (nm[1]) { if (/\bca\.?/i.test(nm[1])) r.approx = true; const p = nm[1].replace(/,?\s*ca\.?/i, "").trim(); if (p) r.per = /^pro\b/i.test(p) ? p : "pro " + p; }
+        readNutrition(raw, r);
         continue;
       }
+      const nt = norm(raw);
+      const nutLike = !/^\d+[.)]\s/.test(raw) && (/\d\s*(kcal|kalorien)(?![a-z])|(kcal|kalorien)\s*:?\s*\d/.test(nt) || (nt.match(new RegExp(NUT_LABEL, "g")) || []).length >= 2 && /\d/.test(nt));
+      (nutLike ? nut : mode === "ing" ? ing : mode === "steps" ? stp : nut).push(raw);
+    }
+    // Zutaten
+    const bulleted = ing.some(l => BUL.test(l));
+    let g = null;
+    for (const raw of ing) {
       const bul = BUL.test(raw), line = raw.replace(BUL, "").trim();
-      if (mode === "ing") {
-        if (!bul && !/^\d/.test(line)) {
-          let name = line.replace(/:$/, ""), note = "";
-          const pm = name.match(/^(.*?)\s*\((.*)\)\s*:?$/);
-          if (pm) { name = pm[1]; note = pm[2]; }
-          name = name.replace(/^für\s+(die|den|das)\s+/i, "");
-          g = { name: name.charAt(0).toUpperCase() + name.slice(1), note, items: [] };
-          r.groups.push(g);
-        } else {
-          if (!g) { g = { name: "", note: "", items: [] }; r.groups.push(g); }
-          g.items.push(splitItem(line));
-        }
-      } else if (mode === "steps") {
-        const sm = line.match(/^(\d+)[.)]\s*(.*)$/);
-        if (sm && !bul) { step = { text: sm[2], sub: [] }; r.steps.push(step); }
-        else if (step && bul) step.sub.push(line);
-        else if (step) step.text += " " + line;
-        else { step = { text: line, sub: [] }; r.steps.push(step); }
+      if (!line) continue;
+      const header = bulleted ? (!bul && !/^\d/.test(line)) : (/:$/.test(line) || /^für\s+(die|den|das)\s/i.test(line));
+      if (header && line.length < 60) {
+        let name = line.replace(/:$/, ""), note = "";
+        const pm = name.match(/^(.*?)\s*\((.*)\)\s*:?$/);
+        if (pm) { name = pm[1]; note = pm[2]; }
+        name = name.replace(/^für\s+(die|den|das)\s+/i, "");
+        g = { name: name.charAt(0).toUpperCase() + name.slice(1), note, items: [] };
+        r.groups.push(g);
       } else {
-        if (/\bca\.?\s/i.test(line)) r.approx = true;
-        const v = parseFloat(((line.match(/(\d+(?:[.,]\d+)?)/) || [])[1] || "").replace(",", "."));
-        if (!Number.isFinite(v)) continue;
-        if (/kcal|kalorien/i.test(line)) r.nutrition.kcal = v;
-        else if (/eiwei|protein/i.test(line)) r.nutrition.protein = v;
-        else if (/kohlenhydrat|carb/i.test(line)) r.nutrition.carbs = v;
-        else if (/fett|fat/i.test(line)) r.nutrition.fat = v;
+        if (!g) { g = { name: "", note: "", items: [] }; r.groups.push(g); }
+        g.items.push(splitItem(line));
       }
     }
-    const t = norm([r.title, ...r.groups.flatMap(gr => gr.items.map(it => it.name))].join(" "));
-    r.meat = MEAT_RE.test(t);
-    r.kind = !r.meat && SWEET_RE.test(t) ? "suess" : "herzhaft";
-    const allSteps = r.steps.map(x => x.text).join(" ");
-    const y = allSteps.match(/(?:auf|in)\s+(\d+)\s+(?:gleich große\s+)?(Portionen|Stücke)/i);
-    if (y) r.yield = y[2].toLowerCase().startsWith("p") ? `${y[1]} Portionen` : `${y[1]} Stück`;
+    r.groups = r.groups.filter(gr => gr.items.length);
+    // Zubereitung
+    const numbered = stp.some(l => /^(\d+[.):]|schritt\s*\d+:?)\s*/i.test(l) && !BUL.test(l));
+    let step = null;
+    for (const raw of stp) {
+      const bul = BUL.test(raw), line = raw.replace(BUL, "").trim();
+      if (!line) continue;
+      if (!numbered) { r.steps.push({ text: line, sub: [] }); continue; }
+      const sm = !bul && line.match(/^(?:\d+[.):]|schritt\s*\d+:?)\s*(.*)$/i);
+      if (sm) { step = { text: sm[1], sub: [] }; r.steps.push(step); }
+      else if (step && bul) step.sub.push(line);
+      else if (step) step.text += " " + line;
+      else { step = { text: line, sub: [] }; r.steps.push(step); }
+    }
+    r.steps = r.steps.filter(s => s.text || s.sub.length);
+    // Nährwerte
+    for (const raw of nut) readNutrition(raw.replace(BUL, ""), r);
+    if (r.nutrition.kcal === undefined) for (const raw of stp) readNutrition(raw, r);
+    // Ergibt, Kategorie
+    r.yield = readYield([st >= 0 ? lines[st] : "", ...pre, ...stp].join(" "));
+    classify(r);
     return r;
   });
 }
 
-function buildPrompt(text, withImage) {
-  return `Du wandelst Rezepte in JSON für eine persönliche Rezept-App um. ${withImage ? "Das Rezept steht im beigefügten Bild" + (text ? "; darunter steht noch Text dazu." : ".") : "Unten steht Text mit einem oder mehreren Rezepten."}
-
-Antworte nur mit JSON in genau dieser Form:
-{"recipes":[{
-  "title": "Butter Chicken Burritos",
-  "kind": "herzhaft",
-  "meat": true,
-  "yield": "8 Burritos",
-  "per": "pro Burrito",
-  "approx": false,
-  "nutrition": {"kcal": 375, "protein": 36, "carbs": 43, "fat": 6.5},
-  "tags": ["hähnchen", "indisch", "curry", "tortilla"],
-  "groups": [{"name": "Gewürze", "note": "2× verwenden", "items": [{"amount": "1½ TL", "name": "Garam Masala", "hint": ""}]}],
-  "steps": [{"text": "Reis nach Packungsanleitung kochen.", "sub": []}]
-}]}
-
-Regeln:
-- Jedes Rezept ist ein eigener Eintrag. Wörter so lassen wie im Original (z. B. Topfen, Faschiertes, Kaffeeobers). Nichts erfinden, nur offensichtliche Tippfehler korrigieren.
-- title: Name des Gerichts, ohne Vorsilben wie "High Protein".
-- kind: "suess" für Kuchen, Desserts, süße Snacks und Frühstück wie Pancakes; sonst "herzhaft".
-- meat: true, wenn Fleisch, Wurst, Schinken, Fisch oder Meeresfrüchte drin sind (auch Sardellen); sonst false.
-- yield: wie viele Stück oder Portionen herauskommen, wenn es aus dem Rezept hervorgeht (z. B. "8 Burritos", "4 Portionen"); sonst "".
-- per: worauf sich die Nährwerte beziehen, z. B. "pro Portion"; "" wenn nicht angegeben.
-- approx: true, wenn die Nährwerte mit "ca." angegeben sind.
-- nutrition: nur Zahlen; null für fehlende Werte. Nicht selbst ausrechnen.
-- groups: Zwischenüberschriften der Zutatenliste ohne "Für die/den/das" (z. B. "Teig", "Füllung"). Ohne Überschriften: eine Gruppe mit name "". note: Hinweis zur Gruppe, sonst "".
-- items: amount = Menge mit Einheit ("800 g", "2–3 EL", "1 Prise", "ca. 450 g") oder "" ohne Menge; name = die Zutat; hint = Zusatz wie "fein gehackt", "nach Geschmack", "optional", "oder pflanzliche Alternative", sonst "".
-- steps: Zubereitung in Reihenfolge, ohne Nummern. Aufzählungen innerhalb eines Schritts in "sub".
-- tags: 4 bis 10 kleingeschriebene deutsche Suchwörter: Hauptzutaten, Küche, Art des Gerichts, auch gängige Synonyme.
-- Ist kein Rezept zu erkennen: {"recipes":[]}.
-${text ? `\nText:\n"""\n${text.slice(0, 60000)}\n"""` : ""}`;
+/* ---------- Speicher ---------- */
+const LOCAL_KEY = "naehrwerk:recipes:v1";
+const localBackend = {
+  read() { try { const v = JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } },
+  write(all) { localStorage.setItem(LOCAL_KEY, JSON.stringify(all)); },
+  async save(id, body) { const all = this.read().filter(x => x.id !== id); all.push({ ...body, id }); this.write(all); loadLocal(); },
+  async remove(id) { this.write(this.read().filter(x => x.id !== id)); loadLocal(); }
+};
+function loadLocal() {
+  uploaded = localBackend.read().map(d => {
+    const r = normalize(d);
+    if (!r || typeof d.id !== "string" || !/^[a-z0-9-]{1,80}$/.test(d.id)) return null;
+    r.id = d.id; r.user = true;
+    return prepare(r);
+  }).filter(Boolean);
+  onUploadedChange();
+}
+function dbBackend(db) {
+  return {
+    save: (id, body) => db.doc(`recipes/${id}`).set(body),
+    remove: id => db.doc(`recipes/${id}`).delete()
+  };
 }
 
+/* ---------- Hochladen-Fenster ---------- */
 function setMsg(el, text, isErr) { el.textContent = text || ""; el.classList.toggle("err", !!isErr); }
-function updateGo() { if (!upCtl) upGo.disabled = !upText.value.trim() && !upImage; }
+function updateGo() { upGo.disabled = !upText.value.trim(); }
 function showStep(step) {
   $("#up-input-step").hidden = step !== "input";
   $("#up-preview-step").hidden = step !== "preview";
@@ -1434,62 +1486,20 @@ function openSheet() {
   setTimeout(() => upText.focus(), 60);
 }
 function closeSheet(reset) {
-  if (upCtl) upCtl.abort();
   sheet.hidden = true;
   document.documentElement.style.overflow = "";
-  if (reset) { upText.value = ""; setImage(null); pending = []; }
-}
-function setImage(f) {
-  if (upImageURL) URL.revokeObjectURL(upImageURL);
-  upImage = f; upImageURL = f ? URL.createObjectURL(f) : "";
-  $("#up-file").hidden = !f;
-  if (f) { $("#up-file-img").src = upImageURL; $("#up-file-name").textContent = f.name || "Bild"; }
-  updateGo();
-}
-function setBusy(on) {
-  upText.disabled = on;
-  $("#up-pick-label").setAttribute("aria-disabled", String(on));
-  upGo.disabled = false;
-  upGo.innerHTML = on ? '<span class="spin" aria-hidden="true"></span>Abbrechen' : "Umwandeln";
-  if (!on) updateGo();
+  if (reset) { upText.value = ""; pending = []; }
 }
 
-async function convert() {
+function convert() {
   const text = upText.value.trim();
-  if (!text && !upImage) return;
+  if (!text) return;
   setMsg(upMsg, "");
-  let raws = null, via = "local";
-  if (SAMPLE && !noClaude) {
-    upCtl = new AbortController();
-    setBusy(true);
-    setMsg(upMsg, "Claude liest das Rezept. Das dauert meist 10 bis 40 Sekunden.");
-    const opts = { signal: upCtl.signal, modelTier: "default" };
-    if (upImage) opts.images = [upImage];
-    try {
-      const res = await SAMPLE.json(buildPrompt(text, !!upImage), opts);
-      raws = Array.isArray(res?.recipes) ? res.recipes : (Array.isArray(res) ? res : []);
-      via = "claude";
-    } catch (e) {
-      const code = e?.code;
-      upCtl = null; setBusy(false); setMsg(upMsg, "");
-      if (code === "cancelled") return;
-      if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(code)) noClaude = true;
-      if (code === "image_rejected" || code === "images_unavailable") { setMsg(upMsg, "Das Bild konnte nicht gelesen werden. Probier ein anderes oder füge den Text ein.", true); return; }
-      if (code === "session_expired") { setMsg(upMsg, "Bitte melde dich neu an und versuch es dann nochmal.", true); return; }
-      if (code === "rate_limited" && !text) { setMsg(upMsg, "Gerade zu viele Anfragen. Versuch es in einer Minute nochmal.", true); return; }
-    }
-    upCtl = null; setBusy(false); setMsg(upMsg, "");
-  }
-  if (!raws) {
-    if (!text) { setMsg(upMsg, "Fotos kann nur Claude lesen, und das klappt gerade nicht. Füge den Rezepttext ein.", true); return; }
-    raws = parseLocal(text);
-  }
-  pending = raws.map(normalize).filter(Boolean);
+  pending = parseLocal(text).map(normalize).filter(Boolean);
   if (!pending.length) {
     setMsg(upMsg, "Kein Rezept erkannt. Am besten klappt es mit Name, „Zutaten“ und „Zubereitung“ im Text.", true);
     return;
   }
-  setMsg($("#pv-note"), via === "local" ? "Ohne Claude gelesen. Prüf kurz Name und Kategorie." : "");
   setMsg($("#pv-msg"), "");
   renderPreview();
   showStep("preview");
@@ -1522,7 +1532,7 @@ function renderPreview() {
 }
 
 async function saveAll() {
-  if (!DB || !pending.length) return;
+  if (!backend || !pending.length) return;
   const save = $("#pv-save");
   save.disabled = true; save.innerHTML = '<span class="spin" aria-hidden="true"></span>Speichert';
   setMsg($("#pv-msg"), "");
@@ -1535,7 +1545,7 @@ async function saveAll() {
       let id = base, k = 2;
       while (taken.has(id)) id = `${base}-${k++}`;
       taken.add(id);
-      await DB.doc(`recipes/${id}`).set({
+      await backend.save(id, {
         v: 1, created: Date.now(), title: r.title, kind: r.kind, meat: r.meat, yield: r.yield, per: r.per,
         approx: r.approx, n: r.n, tags: r.tags, groups: r.groups, steps: r.steps
       });
@@ -1544,8 +1554,8 @@ async function saveAll() {
   } catch (e) {
     pending = pending.slice(saved.length);
     renderPreview();
-    const code = e?.code;
-    setMsg($("#pv-msg"), code === "quota_exceeded" ? "Der Speicher ist voll. Lösch ein paar Rezepte und versuch es nochmal."
+    const code = e?.code || e?.name;
+    setMsg($("#pv-msg"), code === "quota_exceeded" || code === "QuotaExceededError" ? "Der Speicher ist voll. Lösch ein paar Rezepte und versuch es nochmal."
       : code === "invalid_argument" ? "Speichern ging nicht. Rezepte hinzufügen kann nur, wer die App bearbeiten darf."
       : "Speichern hat nicht geklappt. Versuch es nochmal.", true);
     return;
@@ -1557,9 +1567,9 @@ async function saveAll() {
 
 async function deleteCurrent() {
   const r = current;
-  if (!DB || !r?.user) return;
+  if (!backend || !r?.user) return;
   try {
-    await DB.doc(`recipes/${r.id}`).delete();
+    await backend.remove(r.id);
     delete store.data.have[r.id]; delete store.data.done[r.id]; store.save();
     toast("Rezept gelöscht");
     goHome();
@@ -1587,29 +1597,36 @@ sheet.addEventListener("input", e => {
 });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet(false); });
 upText.addEventListener("input", updateGo);
-upText.addEventListener("paste", e => {
-  const f = [...(e.clipboardData?.files || [])].find(x => x.type.startsWith("image/"));
-  if (f && imagesOK) { e.preventDefault(); setImage(f); }
-});
-upGo.addEventListener("click", () => { if (upCtl) upCtl.abort(); else convert(); });
-$("#up-file-rm").addEventListener("click", () => setImage(null));
+upGo.addEventListener("click", convert);
+$("#pv-back").addEventListener("click", () => showStep("input"));
+$("#pv-save").addEventListener("click", saveAll);
+
+/* Datei-Knopf (in Claude) bzw. Einfügen-Knopf (eigenständige App) */
+const canPaste = !IN_CLAUDE && !!(navigator.clipboard && navigator.clipboard.readText);
+if (canPaste) {
+  $("#up-pick-text").textContent = "Einfügen";
+  $("#up-pick-label").addEventListener("click", async e => {
+    e.preventDefault();
+    try {
+      const t = await navigator.clipboard.readText();
+      if (t && t.trim()) { upText.value = t; updateGo(); setMsg(upMsg, ""); }
+      else setMsg(upMsg, "In der Zwischenablage ist kein Text.", true);
+    } catch (err) { setMsg(upMsg, "Einfügen ging nicht. Halte im Feld gedrückt und wähle „Einsetzen“.", true); }
+  });
+}
 upPick.addEventListener("change", async () => {
   const f = upPick.files[0];
   upPick.value = "";
   if (!f) return;
-  if (f.type.startsWith("image/")) {
-    if (imagesOK) setImage(f); else setMsg(upMsg, "Fotos gehen hier gerade nicht. Füge den Text ein.", true);
-  } else if (f.type.startsWith("text/") || /\.(txt|md)$/i.test(f.name)) {
+  if (f.type.startsWith("text/") || /\.(txt|md)$/i.test(f.name)) {
     try { upText.value = (await f.text()).slice(0, 100000); } catch (err) { setMsg(upMsg, "Die Datei konnte nicht gelesen werden.", true); }
     updateGo();
   } else {
-    setMsg(upMsg, "Nur Fotos oder Textdateien.", true);
+    setMsg(upMsg, "Nur Textdateien.", true);
   }
 });
-$("#pv-back").addEventListener("click", () => showStep("input"));
-$("#pv-save").addEventListener("click", saveAll);
 
-/* Gespeicherte Rezepte laden und Claude zum Umwandeln bereitstellen */
+/* Gespeicherte Rezepte laden */
 function onUploadedChange() {
   ALL = RECIPES.concat(uploaded);
   updateCount();
@@ -1618,30 +1635,28 @@ function onUploadedChange() {
   if (detail.hidden && id && ALL.some(r => r.id === id)) { route(); return; }
   if (!home.hidden) renderHome();
 }
-(async () => {
-  if (!window.claude || typeof window.claude.use !== "function") return;
-  claude.use("sample").then(async s => {
-    SAMPLE = s;
-    if (!s) return;
-    const lim = await s.limits().catch(() => null);
-    if (lim?.images) {
-      imagesOK = true;
-      upPick.accept = [...lim.images.mediaTypes, ".txt", ".md", "text/plain"].join(",");
-      $("#up-pick-text").textContent = "Foto";
-    }
-  }).catch(() => {});
-  const db = await claude.use("db").catch(() => null);
-  if (!db) return;
-  DB = db;
+function useLocal() {
+  backend = localBackend;
+  loadLocal();
   $("#open-upload").hidden = false;
-  db.collection("recipes").onSnapshot(snap => {
-    uploaded = snap.docs.map(d => {
-      const r = normalize(d.data());
-      if (!r) return null;
-      r.id = d.id; r.user = true;
-      return prepare(r);
-    }).filter(Boolean);
-    onUploadedChange();
-  }, () => {});
-})();
+}
+if (!IN_CLAUDE) {
+  useLocal();
+} else {
+  (async () => {
+    const db = await window.claude.use("db").catch(() => null);
+    if (!db) { useLocal(); return; }
+    backend = dbBackend(db);
+    $("#open-upload").hidden = false;
+    db.collection("recipes").onSnapshot(snap => {
+      uploaded = snap.docs.map(d => {
+        const r = normalize(d.data());
+        if (!r) return null;
+        r.id = d.id; r.user = true;
+        return prepare(r);
+      }).filter(Boolean);
+      onUploadedChange();
+    }, () => {});
+  })();
+}
 </script>
