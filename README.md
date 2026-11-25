@@ -1,9 +1,20 @@
 # Nährwerk
 
-Persönliche Rezept-App: Suche, Filter (Fleisch / Vegetarisch / Süß), Zutaten abhaken, die man schon hat; der Rest wird als Einkaufsliste kopiert und Zubereitung Schritt für Schritt.
+Persönliche Rezept-App: Suche, Filter (Fleisch / Vegetarisch / Süß), Zutaten abhaken, die man schon hat (der Rest wird als Einkaufsliste kopiert), Zubereitung Schritt für Schritt und Rezepte hochladen.
 
-- `index.html` – die App (Rezepte stehen oben im `<script>` im Array `RECIPES`)
-- `start.jpg` – Startbild
-- `tools/` – Generator fürs Startbild (`node tools/render.js tools/art.html start.jpg`)
+**Live:** https://naehrwerk-iu1p.netlify.app
 
-Neue Rezepte: in der App oben rechts auf „Hochladen“, Text (oder Foto) einfügen, „Umwandeln“, „Speichern“. Claude liest das Rezept und ordnet es ein; ohne Claude liest ein einfacher Text-Leser das gewohnte Format. Hochgeladene Rezepte liegen im Speicher des Artifacts (Sammlung `recipes`), die 11 Start-Rezepte im Array `RECIPES`.
+## Rezepte hochladen
+Oben rechts auf „Hochladen“, Rezepttext einfügen, „Umwandeln“, prüfen, „Speichern“. Der eingebaute Leser erkennt Titel, Zutaten (mit Mengen), Zubereitung und Nährwerte und ordnet das Rezept ein (Herzhaft/Süß, Fleisch/Vegetarisch). Alles läuft in der App, ohne externe Dienste.
+
+Gespeichert wird in der Netlify-Version im Browser des Geräts, in der Claude-Version im Speicher des Artifacts.
+
+## Dateien
+- `index.html` – die App (Quelle). Start-Rezepte im Array `RECIPES`.
+- `start.jpg` – Startbild; Generator in `tools/art.html` (`node tools/render.js tools/art.html start.jpg`)
+- `site/` – eigenständige Web-App für Netlify (installierbar, offline nutzbar)
+- `tools/build-site.js` – baut `site/` aus `index.html` (`node tools/build-site.js`)
+- `tools/make-icons.js` – erzeugt die App-Icons
+
+## Neu veröffentlichen
+`node tools/build-site.js`, dann `site/` auf Netlify deployen (Projekt `naehrwerk-iu1p`).
