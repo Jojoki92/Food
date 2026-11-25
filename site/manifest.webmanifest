@@ -1,6 +1,6 @@
 {
-  "name": "Nährwerk",
-  "short_name": "Nährwerk",
+  "name": "Meal Prep",
+  "short_name": "Meal Prep",
   "lang": "de",
   "description": "Meine Rezepte: suchen, filtern, Zutaten abhaken, neue Rezepte hochladen.",
   "start_url": "./",

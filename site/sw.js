@@ -1,5 +1,5 @@
-// Offline-Cache für Nährwerk (Version 20261125143556)
-const CACHE = "naehrwerk-20261125143556";
+// Offline-Cache für Meal Prep (Version 20261125144820)
+const CACHE = "naehrwerk-20261125144820";
 const CORE = ["./", "index.html", "start.jpg", "manifest.webmanifest", "icon-192.png", "icon-512.png", "favicon-32.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

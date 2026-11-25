@@ -1,4 +1,4 @@
-<title>Nährwerk</title>
+<title>Meal Prep</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#16251c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -95,7 +95,7 @@ ul, ol { padding: 0; list-style: none; }
   font: 500 12px/1 var(--f-num); letter-spacing: .16em; text-transform: uppercase; opacity: .78;
 }
 .wordmark {
-  font: 800 clamp(56px, 18vw, 84px)/.88 var(--f-display);
+  font: 800 clamp(50px, 16vw, 84px)/.88 var(--f-display);
   letter-spacing: -.04em;
   margin: 12px 0 14px -2px;
 }
@@ -424,7 +424,7 @@ ul, ol { padding: 0; list-style: none; }
       </button>
       <div class="hero-text gutter">
         <p class="hero-eyebrow" id="hero-count">Rezeptsammlung</p>
-        <h1 class="wordmark">Nährwerk<span>.</span></h1>
+        <h1 class="wordmark">Meal Prep<span>.</span></h1>
         <p class="tagline">Eiweißreich kochen, ohne lange zu suchen.</p>
       </div>
     </header>
@@ -1216,14 +1216,14 @@ function route() {
     home.hidden = true; detail.hidden = false;
     renderDetail(r);
     window.scrollTo(0, 0);
-    document.title = `${r.title} · Nährwerk`;
+    document.title = `${r.title} · Meal Prep`;
     keepAwake(true);
   } else {
     const wasDetail = !detail.hidden;
     detail.hidden = true; detail.innerHTML = ""; home.hidden = false; current = null;
     renderHome();
     window.scrollTo(0, wasDetail ? ui.homeScroll : 0);
-    document.title = "Nährwerk";
+    document.title = "Meal Prep";
     keepAwake(false);
   }
   onScroll();

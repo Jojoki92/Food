@@ -22,7 +22,7 @@ const html = `<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Nährwerk">
+<meta name="apple-mobile-web-app-title" content="Meal Prep">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 ${headPart}
 </head>
@@ -36,7 +36,7 @@ fs.writeFileSync(path.join(out, 'index.html'), html);
 fs.copyFileSync(path.join(root, 'start.jpg'), path.join(out, 'start.jpg'));
 
 const manifest = {
-  name: 'Nährwerk', short_name: 'Nährwerk', lang: 'de',
+  name: 'Meal Prep', short_name: 'Meal Prep', lang: 'de',
   description: 'Meine Rezepte: suchen, filtern, Zutaten abhaken, neue Rezepte hochladen.',
   start_url: './', scope: './', display: 'standalone',
   background_color: '#eef1eb', theme_color: '#16251c',
@@ -49,7 +49,7 @@ const manifest = {
 fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2));
 
 const version = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
-const sw = `// Offline-Cache für Nährwerk (Version ${version})
+const sw = `// Offline-Cache für Meal Prep (Version ${version})
 const CACHE = "naehrwerk-${version}";
 const CORE = ["./", "index.html", "start.jpg", "manifest.webmanifest", "icon-192.png", "icon-512.png", "favicon-32.png"];
 self.addEventListener("install", e => {
