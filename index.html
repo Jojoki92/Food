@@ -1,0 +1,1132 @@
+<title>Nährwerk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#16251c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..650&family=Geist+Mono:wght@400..600&display=swap">
+<style>
+/* Layout: one phone-width column. Illustrated start image on top, a sticky search + filter bar
+   that overlaps its lower edge, then a hairline-ruled recipe index grouped Herzhaft / Süß.
+   Opening a recipe swaps the index for a detail view: macros, tappable ingredient list, steps. */
+:root {
+  --bg: #eef1eb;
+  --raise: #f8faf6;
+  --field: #ffffff;
+  --ink: #16201a;
+  --muted: #5b675e;
+  --line: #d6ddd3;
+  --line-strong: #aab5ac;
+  --basil: #2f6b48;
+  --kurkuma: #d4961c;
+  --paprika: #c0412a;
+  --paprika-soft: #f5e3dc;
+  --sand: #b9a27a;
+  --on-img: #f4f1e8;
+
+  --f-display: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-num: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --col: 600px;
+  --radius: 16px;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1511; --raise: #172019; --field: #172019; --ink: #e5eae3; --muted: #93a096;
+    --line: #26302a; --line-strong: #46524a; --basil: #6fb18a; --kurkuma: #e6ad3f;
+    --paprika: #e46b4d; --paprika-soft: #36201a; --sand: #a8946e; --on-img: #f4f1e8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1511; --raise: #172019; --field: #172019; --ink: #e5eae3; --muted: #93a096;
+  --line: #26302a; --line-strong: #46524a; --basil: #6fb18a; --kurkuma: #e6ad3f;
+  --paprika: #e46b4d; --paprika-soft: #36201a; --sand: #a8946e; --on-img: #f4f1e8;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.5 var(--f-body);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 30; background: var(--bg);
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--basil); outline-offset: 2px; border-radius: 8px; }
+h1, h2, h3, p, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+
+.app { max-width: var(--col); margin: 0 auto; min-height: 100%; }
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- Start ---------- */
+.hero {
+  position: relative;
+  height: clamp(360px, 58svh, 480px);
+  overflow: hidden;
+  background: #1c2e22;
+}
+.hero img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: 50% 0%;
+  max-width: 100%;
+}
+.hero::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(12, 21, 15, .94) 0%, rgba(12, 21, 15, .55) 30%, rgba(12, 21, 15, 0) 56%);
+}
+.hero-text {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
+  padding-bottom: 56px;
+  color: var(--on-img);
+}
+.hero-eyebrow {
+  font: 500 12px/1 var(--f-num); letter-spacing: .16em; text-transform: uppercase; opacity: .78;
+}
+.wordmark {
+  font: 800 clamp(56px, 18vw, 84px)/.88 var(--f-display);
+  letter-spacing: -.04em;
+  margin: 12px 0 14px -2px;
+}
+.wordmark span { color: #f0b748; }
+.tagline { font-size: 15px; line-height: 1.45; max-width: 30ch; opacity: .86; text-wrap: balance; }
+
+.toolbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  margin-top: -38px;
+  padding-top: 10px; padding-bottom: 12px;
+  transition: background-color .2s, box-shadow .2s;
+}
+.toolbar.stuck { background: var(--bg); box-shadow: 0 1px 0 var(--line); }
+.search {
+  display: flex; align-items: center; gap: 10px;
+  height: 54px; padding: 0 6px 0 16px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(10, 20, 14, .06), 0 12px 28px -16px rgba(10, 20, 14, .45);
+  transition: border-color .15s, box-shadow .15s;
+}
+.search:focus-within { border-color: var(--basil); box-shadow: 0 0 0 3px color-mix(in srgb, var(--basil) 22%, transparent), 0 12px 28px -16px rgba(10, 20, 14, .45); }
+.search svg { flex: none; color: var(--muted); }
+.search input {
+  flex: 1; min-width: 0; height: 100%;
+  border: 0; outline: 0; background: transparent; color: var(--ink);
+  font: 400 16px var(--f-body);
+}
+.search input::placeholder { color: var(--muted); }
+.search input::-webkit-search-cancel-button { display: none; }
+.icon-btn {
+  flex: none; display: grid; place-items: center; width: 42px; height: 42px;
+  border: 0; background: transparent; border-radius: 12px; cursor: pointer; color: var(--muted);
+}
+.icon-btn:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+
+.chips { display: flex; gap: 6px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 11px;
+  border: 1px solid var(--line-strong); border-radius: 999px;
+  background: transparent; cursor: pointer;
+  font: 500 13.5px var(--f-body);
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+.chip .n { font: 500 12px var(--f-num); color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip:hover { border-color: var(--ink); }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--bg) 70%, transparent); }
+
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  padding-top: 8px;
+  font: 400 12px var(--f-num); color: var(--muted);
+}
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+
+.section { padding-top: 26px; }
+.section-h {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding-bottom: 10px; border-bottom: 1.5px solid var(--ink);
+}
+.section-h h2 { font: 700 24px/1 var(--f-display); letter-spacing: -.02em; }
+.section-h span { font: 500 13px var(--f-num); color: var(--muted); }
+
+.row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center;
+  padding: 16px 0 17px;
+  border-bottom: 1px solid var(--line);
+  color: inherit; text-decoration: none;
+  transition: background-color .15s;
+}
+.row:active { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.row-title {
+  font: 650 19px/1.2 var(--f-display); letter-spacing: -.012em; text-wrap: balance;
+  transition: color .15s;
+}
+.row:hover .row-title { color: var(--basil); }
+.row-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+  margin: 6px 0 10px; font-size: 13.5px; color: var(--muted);
+}
+.miss {
+  font: 600 11px/1 var(--f-num); letter-spacing: .04em; text-transform: uppercase;
+  color: var(--paprika); padding: 4px 7px; border-radius: 6px; background: var(--paprika-soft);
+}
+.macro { display: flex; gap: 2px; height: 4px; max-width: 190px; border-radius: 3px; overflow: hidden; }
+.macro i:nth-child(1) { background: var(--basil); }
+.macro i:nth-child(2) { background: var(--kurkuma); }
+.macro i:nth-child(3) { background: var(--sand); }
+.row-pro { text-align: right; min-width: 64px; }
+.row-pro b { display: block; font: 500 30px/1 var(--f-num); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.row-pro span { display: block; margin-top: 4px; font: 500 10.5px var(--f-num); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+.empty { padding: 48px 0 24px; text-align: left; }
+.empty p { font: 650 22px/1.25 var(--f-display); letter-spacing: -.01em; max-width: 22ch; }
+.empty small { display: block; margin-top: 8px; color: var(--muted); font-size: 15px; }
+.text-btn {
+  margin-top: 16px; height: 40px; padding: 0 16px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line-strong); background: transparent; font-weight: 500;
+}
+.foot { padding-block: 40px 48px; font: 400 12px var(--f-num); color: var(--muted); letter-spacing: .04em; }
+
+/* ---------- Rezept ---------- */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px;
+  height: 56px; background: var(--bg);
+  box-shadow: 0 1px 0 transparent; transition: box-shadow .2s;
+}
+.topbar.scrolled { box-shadow: 0 1px 0 var(--line); }
+.back {
+  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px 0 6px; margin-left: -6px;
+  border-radius: 12px; color: var(--ink); text-decoration: none; font-weight: 500; font-size: 15px;
+}
+.back:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.topbar-title {
+  font: 650 15px/1.2 var(--f-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  opacity: 0; transform: translateY(4px); transition: opacity .2s, transform .2s;
+}
+.topbar.scrolled .topbar-title { opacity: 1; transform: none; }
+
+.view-in { animation: viewIn .32s var(--ease); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(10px); } }
+
+.d-head { padding-top: 12px; }
+.d-eyebrow { font: 500 12px/1 var(--f-num); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.d-title { margin-top: 12px; font: 750 clamp(32px, 9vw, 44px)/1.02 var(--f-display); letter-spacing: -.03em; text-wrap: balance; }
+.d-yield { margin-top: 10px; color: var(--muted); font-size: 15px; }
+
+.nutri {
+  margin-top: 22px; padding: 18px 18px 16px;
+  background: var(--raise); border: 1px solid var(--line); border-radius: 20px;
+}
+.nutri-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.nutri-grid div { min-width: 0; }
+.nutri-grid b { display: block; font: 500 22px/1.1 var(--f-num); letter-spacing: -.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nutri-grid b small { font-size: 13px; letter-spacing: 0; margin-left: 2px; color: var(--muted); }
+.nutri-grid span { display: block; margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+.nutri-grid .hl b { color: var(--basil); }
+.nutri .macro { max-width: none; height: 6px; margin-top: 16px; }
+.nutri-foot {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin-top: 10px;
+  font: 400 12px var(--f-num); color: var(--muted);
+}
+.nutri-foot .legend { padding: 0; }
+
+.block { padding-top: 34px; }
+.block-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1.5px solid var(--ink); }
+.block-h h2 { font: 700 24px/1 var(--f-display); letter-spacing: -.02em; }
+.block-h p { font-size: 13px; color: var(--muted); text-align: right; }
+
+.grp + .grp { margin-top: 8px; }
+.grp-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 18px 0 6px; }
+.grp-h h3 { font: 600 12px/1 var(--f-num); letter-spacing: .12em; text-transform: uppercase; }
+.grp-h small { font-size: 13px; color: var(--muted); }
+
+.ing {
+  display: grid; grid-template-columns: 24px 4.9rem minmax(0, 1fr) auto; gap: 12px; align-items: start;
+  padding: 12px 8px 12px 6px; margin-left: -6px; margin-right: -8px;
+  width: calc(100% + 14px);
+  border: 0; border-bottom: 1px solid var(--line); background: transparent; border-radius: 0;
+  text-align: left; cursor: pointer;
+  transition: background-color .15s;
+}
+.ing:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.box {
+  width: 22px; height: 22px; margin-top: 1px; border-radius: 7px; border: 1.5px solid var(--line-strong);
+  display: grid; place-items: center; color: transparent;
+  transition: background-color .15s, border-color .15s, color .15s, transform .15s;
+}
+.amt { font: 500 14px/1.5 var(--f-num); color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.name { font-size: 16px; line-height: 1.45; }
+.name small { display: block; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+.flag {
+  align-self: center; font: 600 11px/1 var(--f-num); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--paprika); opacity: 0; transition: opacity .15s;
+}
+.ing[aria-pressed="true"] { background: var(--paprika-soft); }
+.ing[aria-pressed="true"] .box { background: var(--paprika); border-color: var(--paprika); color: #fff; transform: scale(1.04); }
+.ing[aria-pressed="true"] .amt { color: var(--ink); }
+.ing[aria-pressed="true"] .flag { opacity: 1; }
+
+.step {
+  display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px;
+  padding: 16px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+}
+.step:focus-visible { border-radius: 10px; }
+.num {
+  width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--ink);
+  display: grid; place-items: center; font: 500 13px var(--f-num); font-variant-numeric: tabular-nums;
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+.num svg { display: none; }
+.step-text { font-size: 16.5px; line-height: 1.6; max-width: 62ch; padding-top: 2px; transition: opacity .2s; }
+.step-text ul { margin-top: 8px; display: grid; gap: 4px; }
+.step-text li { position: relative; padding-left: 16px; }
+.step-text li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }
+.step[aria-pressed="true"] .num { background: var(--basil); border-color: var(--basil); color: #fff; }
+.step[aria-pressed="true"] .num span { display: none; }
+.step[aria-pressed="true"] .num svg { display: block; }
+.step[aria-pressed="true"] .step-text { opacity: .45; }
+.steps-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 0 0; color: var(--muted); font-size: 14px; }
+.d-end { padding-block: 36px 140px; }
+.d-end a { color: var(--ink); font-weight: 500; }
+
+.cartbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  padding-top: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+.cartbar-in {
+  pointer-events: auto;
+  max-width: calc(var(--col) - 32px); margin: 0 auto;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 8px 8px 18px; border-radius: 18px;
+  background: var(--ink); color: var(--bg);
+  box-shadow: 0 14px 36px -14px rgba(0, 0, 0, .55);
+  animation: barIn .28s var(--ease);
+}
+@keyframes barIn { from { transform: translateY(16px); opacity: 0; } }
+.cartbar-count { flex: 1; min-width: 0; font-weight: 500; font-size: 15px; }
+.cartbar-count b { font-family: var(--f-num); font-weight: 600; }
+.cartbar button { height: 40px; padding: 0 14px; border: 0; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn-ghost { background: transparent; color: inherit; opacity: .72; }
+.btn-ghost:hover { opacity: 1; }
+.btn-solid { background: var(--bg); color: var(--ink); }
+
+.toast {
+  position: fixed; left: 50%; z-index: 40;
+  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 8px); opacity: 0; pointer-events: none;
+  padding: 10px 16px; border-radius: 12px; background: var(--basil); color: #fff;
+  font-weight: 500; font-size: 14px; white-space: nowrap;
+  transition: opacity .2s, transform .2s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (min-width: 700px) {
+  .app { padding-top: 24px; }
+  .hero { border-radius: 28px; }
+  .hero-text { padding-left: 32px; padding-right: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="app">
+  <main id="home">
+    <header class="hero">
+      <img src="start.jpg" alt="Gezeichnete Draufsicht: Schüssel mit Reis und Butter Chicken, Tortillas, Joghurt, Gewürze, Chili und Zitrone auf dunklem Stein" width="1200" height="1500">
+      <div class="hero-text gutter">
+        <p class="hero-eyebrow" id="hero-count">Rezeptsammlung</p>
+        <h1 class="wordmark">Nährwerk<span>.</span></h1>
+        <p class="tagline">Eiweißreich kochen, ohne lange zu suchen.</p>
+      </div>
+    </header>
+
+    <div class="toolbar gutter" id="toolbar">
+      <form class="search" role="search" id="search-form">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Rezept oder Zutat suchen" autocomplete="off" enterkeyhint="search" aria-label="Rezept oder Zutat suchen">
+        <button class="icon-btn" type="button" id="clear" aria-label="Suche leeren" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </form>
+      <div class="chips" id="chips" role="group" aria-label="Filter"></div>
+    </div>
+
+    <div class="gutter">
+      <p class="legend" aria-hidden="true"><span><i style="background:var(--basil)"></i>Eiweiß</span><span><i style="background:var(--kurkuma)"></i>Kohlenhydrate</span><span><i style="background:var(--sand)"></i>Fett</span></p>
+      <div id="list" aria-live="polite"></div>
+      <p class="foot">Nährwerk · Rezepte von dir, sortiert von A bis Z</p>
+    </div>
+  </main>
+
+  <article id="detail" hidden></article>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================== Rezepte ============================== */
+const RECIPES = [
+  {
+    id: "butter-chicken-burritos", title: "Butter Chicken Burritos", kind: "herzhaft", meat: true,
+    yield: "8 Burritos", per: "pro Burrito", approx: false, n: [375, 36, 43, 6.5],
+    tags: "hähnchen chicken huhn indisch curry tortilla wrap",
+    groups: [
+      ["Burritos", "", [
+        ["800 g", "Hähnchenbrust"],
+        ["120 g", "griechischer Joghurt", "fettarm"],
+        ["200 g", "Reis"],
+        ["20 g", "Light-Joghurtbutter"],
+        ["1", "Zwiebel"],
+        ["2", "Knoblauchzehen"],
+        ["2 TL", "Ingwer", "frisch, fein gehackt"],
+        ["400 ml", "passierte Tomaten"],
+        ["60 g", "Light-Frischkäse"],
+        ["8", "High-Protein-Tortillas"],
+        ["", "Ölspray"]
+      ]],
+      ["Gewürze", "2× verwenden: für Marinade und Sauce", [
+        ["1 TL", "Paprikapulver"],
+        ["1 TL", "Kreuzkümmel"],
+        ["1½ TL", "Garam Masala"],
+        ["½ TL", "Kurkuma"],
+        ["1 TL", "Salz"]
+      ]]
+    ],
+    steps: [
+      "Reis nach Packungsanleitung kochen und beiseitestellen.",
+      "Hähnchen in kleine Würfel schneiden.",
+      "Hähnchen mit dem griechischen Joghurt und der ersten Gewürzmischung vermengen und 10–15 Minuten marinieren.",
+      "Hähnchen mit etwas Ölspray in einer Pfanne goldbraun und durchgegart anbraten. Anschließend aus der Pfanne nehmen.",
+      "In derselben Pfanne die Light-Joghurtbutter schmelzen.",
+      "Zwiebel, Knoblauch und Ingwer fein hacken und 2–3 Minuten anschwitzen.",
+      "Die zweite Gewürzmischung hinzufügen und etwa 30 Sekunden mitrösten.",
+      "Passierte Tomaten einrühren und 5 Minuten köcheln lassen.",
+      "Light-Frischkäse unterrühren und die Sauce nach Wunsch fein pürieren.",
+      "Das angebratene Hähnchen zurück in die Sauce geben und gut vermengen.",
+      "Auf jede Tortilla etwas Reis und Butter Chicken verteilen.",
+      "Burritos fest einrollen.",
+      "Mit etwas Ölspray von beiden Seiten in der Pfanne goldbraun anbraten.",
+      "Nach Belieben mit einer Joghurtsoße servieren."
+    ]
+  },
+  {
+    id: "pizza-hot-pockets", title: "Pizza Hot Pockets", kind: "herzhaft", meat: true,
+    yield: "8 Hot Pockets", per: "pro Hot Pocket", approx: false, n: [315, 28, 35, 7],
+    tags: "pizza schinken käse teig topfen quark ofen",
+    groups: [
+      ["Teig", "", [
+        ["500 g", "Magertopfen"],
+        ["415 g", "Weizenmehl"],
+        ["1¼ TL", "Backpulver"],
+        ["1 TL", "Salz"]
+      ]],
+      ["Füllung", "", [
+        ["120 ml", "passierte Tomaten"],
+        ["", "Pfeffer", "nach Geschmack"],
+        ["", "Knoblauchpulver", "nach Geschmack"],
+        ["120 g", "Schinkenwürfel"],
+        ["160 g", "Streukäse", "fettarm"]
+      ]],
+      ["Zusätzlich", "", [
+        ["", "Ölspray oder etwas Öl", "zum Anbraten"]
+      ]]
+    ],
+    steps: [
+      "Magertopfen, Mehl, Backpulver und Salz zu einem glatten Teig verkneten.",
+      "Den Teig 10 Minuten ruhen lassen.",
+      "Passierte Tomaten mit Pfeffer und Knoblauchpulver würzen und verrühren.",
+      "Den Teig in 8 gleich große Stücke teilen.",
+      "Jedes Stück rund ausrollen.",
+      "Auf jedes Teigstück zuerst 20 g Streukäse geben.",
+      "Anschließend 1 EL Tomatensoße darauf verteilen.",
+      "Danach 15 g Schinkenwürfel auf die Tomatensoße geben.",
+      "Die Teigränder über der Füllung zusammenklappen und gut verschließen.",
+      "Die Hot Pockets leicht flach drücken.",
+      "Mit etwas Ölspray oder wenig Öl von beiden Seiten scharf anbraten, bis sie goldbraune Stellen bekommen.",
+      "Anschließend im vorgeheizten Backofen bei 180 °C Umluft 12–15 Minuten backen, bis der Teig vollständig durchgebacken ist."
+    ]
+  },
+  {
+    id: "dot-cake", title: "Dot Cake", kind: "suess", meat: false,
+    yield: "1 Kuchen", per: "pro Kuchen", approx: false, n: [301, 29.1, 31.6, 6.3],
+    tags: "kuchen skyr dessert streusel vanille backen",
+    groups: [
+      ["", "", [
+        ["200 g", "Skyr"],
+        ["1", "Ei", "Größe M"],
+        ["3 g", "Backpulver"],
+        ["", "Vanille-Puddingpulver", "nach Geschmack"],
+        ["6 g", "Chunky Flavour Vanilla Perfection"],
+        ["20 g", "bunte Streusel"]
+      ]]
+    ],
+    steps: [
+      "75 g Skyr mit dem Ei, 3 g Chunky Flavour, Backpulver und etwas Vanille-Puddingpulver zu einem glatten Teig verrühren.",
+      "Den Teig in eine kleine, ofenfeste Form geben.",
+      "Im vorgeheizten Backofen bei 160 °C ca. 20 Minuten backen.",
+      "Den Kuchen vollständig auskühlen lassen.",
+      "Die restlichen 125 g Skyr mit den übrigen 3 g Chunky Flavour verrühren.",
+      "Die Skyr-Creme gleichmäßig auf dem abgekühlten Kuchen verstreichen.",
+      "Mit den 20 g bunten Streuseln dekorieren.",
+      "Mindestens 30 Minuten kalt stellen und anschließend genießen."
+    ]
+  },
+  {
+    id: "crispy-cheesy-beef-taquitos", title: "Crispy Cheesy Beef Taquitos", kind: "herzhaft", meat: true,
+    yield: "8 Taquitos", per: "pro Taquito", approx: false, n: [295, 15, 19, 18],
+    tags: "rind hackfleisch faschiertes mexikanisch tortilla avocado dip käse",
+    groups: [
+      ["Füllung", "", [
+        ["250 g", "Rinderhackfleisch"],
+        ["1", "Zwiebel", "mittelgroß, fein gewürfelt"],
+        ["1 TL", "Knoblauchpulver"],
+        ["1 TL", "Zwiebelpulver"],
+        ["1 TL", "Paprikapulver"],
+        ["1 TL", "Salz"],
+        ["½ TL", "schwarzer Pfeffer"],
+        ["½ TL", "geräuchertes Paprikapulver"],
+        ["", "Chiliflocken", "nach Geschmack"],
+        ["1 EL", "Tomatenmark"],
+        ["4 EL", "passierte Tomaten"],
+        ["2–4 EL", "Wasser", "nach Bedarf"]
+      ]],
+      ["Zum Füllen", "", [
+        ["8", "kleine Weizentortillas"],
+        ["250 g", "Mozzarella", "gerieben"],
+        ["", "neutrales Öl", "zum Anbraten"]
+      ]],
+      ["Avocado-Petersilien-Dip", "", [
+        ["1", "reife Avocado"],
+        ["2 EL", "Petersilie", "frisch"],
+        ["2", "Knoblauchzehen"],
+        ["½", "Zitrone", "nur der Saft"],
+        ["1 EL", "Olivenöl"],
+        ["", "Salz und Pfeffer"],
+        ["1–2 EL", "Wasser", "nach Bedarf"]
+      ]]
+    ],
+    steps: [
+      "Etwas Öl in einer Pfanne erhitzen und die fein gewürfelte Zwiebel ca. 3 Minuten glasig anbraten.",
+      "Das Hackfleisch dazugeben und 5–6 Minuten krümelig anbraten.",
+      "Knoblauchpulver, Zwiebelpulver, Paprikapulver, Salz, Pfeffer, Chiliflocken, geräuchertes Paprikapulver, Tomatenmark und passierte Tomaten einrühren.",
+      "2–4 EL Wasser hinzufügen und 2–3 Minuten köcheln lassen, bis die Masse leicht eindickt. Anschließend etwas abkühlen lassen.",
+      "Für den Dip Avocado, Petersilie, Knoblauch, Zitronensaft, Olivenöl, Salz und Pfeffer pürieren. Nach Bedarf 1–2 EL Wasser hinzufügen, bis eine cremige Konsistenz entsteht.",
+      "Eine Tortilla flach hinlegen und etwas geriebenen Mozzarella in die Mitte geben.",
+      "Etwas Hackfleisch darauf verteilen und nochmals etwas Mozzarella darüberstreuen.",
+      "Die Tortilla fest zu einem Taquito aufrollen.",
+      "Mit den restlichen Tortillas genauso verfahren.",
+      "Öl in einer Pfanne erhitzen und die Taquitos mit der Nahtseite nach unten 3–4 Minuten goldbraun und knusprig anbraten. Dabei regelmäßig wenden.",
+      "Auf Küchenpapier abtropfen lassen.",
+      "Warm mit dem Avocado-Petersilien-Dip servieren."
+    ]
+  },
+  {
+    id: "cookie-dough", title: "Cookie Dough", kind: "suess", meat: false,
+    yield: "", per: "pro Portion", approx: true, n: [310, 18, 18, 18],
+    tags: "dessert snack schoko joghurt keksteig ohne backen",
+    groups: [
+      ["", "", [
+        ["100 g", "griechischer Joghurt", "oder pflanzliche Alternative"],
+        ["2 EL", "Ahornsirup"],
+        ["30 g", "Proteinpulver", "Vanille oder neutral"],
+        ["60 g", "Mandelmehl"],
+        ["2–3 EL", "Schokodrops", "Zartbitter oder zuckerfrei"]
+      ]]
+    ],
+    steps: [
+      "Den griechischen Joghurt mit dem Ahornsirup in einer Schüssel verrühren.",
+      "Proteinpulver und Mandelmehl hinzufügen und alles zu einer cremigen, glatten Masse vermischen.",
+      "Die Schokodrops unterheben und gleichmäßig verteilen.",
+      "Den Cookie Dough 15–30 Minuten in den Kühlschrank stellen, damit er fester wird.",
+      "Direkt genießen oder in kleine Schälchen portionieren."
+    ]
+  },
+  {
+    id: "honey-bbq-chicken-mac-and-cheese", title: "Honey BBQ Chicken Mac & Cheese", kind: "herzhaft", meat: true,
+    yield: "4 Portionen", per: "pro Portion", approx: false, n: [587, 59, 67.5, 9],
+    tags: "hähnchen chicken huhn nudeln pasta makkaroni käse bbq meal prep",
+    groups: [
+      ["Honey-BBQ-Chicken", "", [
+        ["700 g", "Hähnchenbrust", "roh"],
+        ["1 TL", "Salz"],
+        ["1 TL", "Zwiebelpulver"],
+        ["1 TL", "geräuchertes Paprikapulver"],
+        ["1 TL", "Knoblauchpulver"],
+        ["1 TL", "Olivenöl"],
+        ["25 g", "Honig"],
+        ["85 g", "BBQ-Sauce", "zuckerfrei oder zuckerreduziert"]
+      ]],
+      ["Mac & Cheese", "", [
+        ["320 g", "Makkaroni", "oder andere Pasta, ungekocht gewogen"],
+        ["340 ml", "Kaffeeobers", "fettfrei"],
+        ["80 g", "Light-Frischkäse"],
+        ["1½ TL", "Hühnerbrühepulver"],
+        ["100 g", "Light-Cheddar", "gerieben"]
+      ]]
+    ],
+    steps: [
+      "Die Hähnchenbrust in kleine Würfel schneiden.",
+      "Das Hähnchen mit Salz, Zwiebelpulver, geräuchertem Paprikapulver, Knoblauchpulver und 1 TL Olivenöl gut vermischen.",
+      "Das Hähnchen in einer Pfanne bei mittlerer bis hoher Hitze anbraten, bis es goldbraun und vollständig durchgegart ist.",
+      "Honig und BBQ-Sauce zum Hähnchen geben.",
+      "Alles gut vermischen und kurz erhitzen, bis die Sauce das Hähnchen gleichmäßig überzieht. Anschließend beiseitestellen.",
+      "Die Pasta nach Packungsanleitung kochen und abgießen.",
+      "Das Kaffeeobers in einen Topf oder eine große Pfanne geben und bei niedriger bis mittlerer Hitze erwärmen.",
+      "Light-Frischkäse und Hühnerbrühepulver hinzufügen und glatt rühren.",
+      "Den geriebenen Light-Cheddar dazugeben und unter ständigem Rühren schmelzen lassen, bis eine cremige Käsesauce entsteht.",
+      "Die gekochte Pasta zur Käsesauce geben und alles gut vermengen.",
+      "Das Mac & Cheese auf 4 Portionen verteilen.",
+      "Das Honey-BBQ-Chicken darauf oder daneben verteilen und servieren."
+    ]
+  },
+  {
+    id: "korean-beef-cucumber-bowls", title: "Korean Beef & Cucumber Bowls", kind: "herzhaft", meat: true,
+    yield: "4 Portionen", per: "pro Portion", approx: true, n: [430, 32, 45, 14],
+    tags: "rind hackfleisch faschiertes reis asiatisch koreanisch meal prep bowl gurke",
+    groups: [
+      ["Korean Beef", "", [
+        ["500 g", "mageres Rinderhackfleisch", "5–10 % Fett"],
+        ["2 EL", "Sojasauce"],
+        ["1 EL", "Honig"],
+        ["1 TL", "Sesamöl"],
+        ["", "Knoblauch", "nach Geschmack"],
+        ["", "Chiliflocken", "nach Geschmack"]
+      ]],
+      ["Bowl", "", [
+        ["2 Tassen", "Jasminreis", "gekocht"],
+        ["1", "Gurke", "gewürfelt"],
+        ["", "Sojasauce", "etwas, für die Gurke"],
+        ["", "Frühlingszwiebel", "zum Garnieren"]
+      ]]
+    ],
+    steps: [
+      "Das Rinderhackfleisch in einer Pfanne bei mittlerer bis hoher Hitze 6–8 Minuten krümelig und vollständig durchbraten.",
+      "Falls viel Fett ausgetreten ist, überschüssiges Fett abgießen.",
+      "2 EL Sojasauce, 1 EL Honig, 1 TL Sesamöl und Knoblauch zum Hackfleisch geben.",
+      "Alles gut vermischen und 2–3 Minuten köcheln lassen, bis die Sauce das Fleisch schön überzieht.",
+      "Die Gurke klein würfeln und mit Chiliflocken und einem kleinen Schuss Sojasauce vermengen.",
+      "Den gekochten Jasminreis auf 4 Meal-Prep-Boxen verteilen.",
+      "Das Korean Beef gleichmäßig auf die 4 Portionen verteilen.",
+      "Die gewürzte Gurke daneben geben.",
+      "Mit fein geschnittener Frühlingszwiebel toppen und servieren oder kalt stellen."
+    ]
+  },
+  {
+    id: "cheeseburger-pockets", title: "Cheeseburger Pockets", kind: "herzhaft", meat: true,
+    yield: "8 Pockets", per: "pro Pocket", approx: true, n: [380, 31, 43, 7],
+    tags: "rind hackfleisch faschiertes burger teig topfen quark ofen",
+    groups: [
+      ["Teig", "", [
+        ["500 g", "Topfen"],
+        ["410 g", "Mehl"],
+        ["1¼ TL", "Backpulver"],
+        ["1 Prise", "Salz"]
+      ]],
+      ["Füllung", "", [
+        ["400 g", "mageres Rinderhackfleisch"],
+        ["1", "Zwiebel", "mittelgroß"],
+        ["1½ TL", "Knoblauchpulver"],
+        ["1½ TL", "Paprikapulver"],
+        ["1½ TL", "Salz"],
+        ["1½ TL", "Pfeffer"],
+        ["80 g", "Light-Frischkäse"],
+        ["45 g", "Ketchup"],
+        ["1 EL", "Senf", "mittelscharf"],
+        ["60 g", "Essiggurken"],
+        ["", "Ölspray oder Öl"]
+      ]],
+      ["Zusätzlich", "", [
+        ["160 g", "Light-Streukäse"]
+      ]]
+    ],
+    steps: [
+      "Topfen, Mehl, Backpulver und eine Prise Salz zu einem glatten Teig verkneten und kurz ruhen lassen.",
+      "Das Rinderhackfleisch in einer Pfanne scharf und krümelig anbraten.",
+      "Die Zwiebel fein würfeln und mit Knoblauchpulver, Paprikapulver, Salz und Pfeffer zum Hackfleisch geben. Kurz mitbraten.",
+      "Light-Frischkäse, Ketchup, Senf und die gewürfelten Essiggurken einrühren und alles gut vermengen.",
+      "Den Teig in 8 gleich große Stücke teilen und jeweils rund ausrollen.",
+      "Auf jedes Teigstück etwas Light-Streukäse und dann die Hackfleischfüllung in die Mitte geben.",
+      "Den Teig über der Füllung gut verschließen und die Pockets leicht flach drücken.",
+      "Die Pockets mit etwas Ölspray oder Öl von beiden Seiten scharf anbraten, bis sie goldbraune Stellen bekommen.",
+      "Bei 180 °C Umluft ca. 12–15 Minuten im Ofen backen, bis der Teig vollständig durchgebacken ist."
+    ]
+  },
+  {
+    id: "fudgy-brownies", title: "Fudgy Brownies", kind: "suess", meat: false,
+    yield: "9 Brownies", per: "pro Brownie", approx: true, n: [99, 11, 8, 2],
+    tags: "schoko schokolade kuchen dessert backen cottage cheese",
+    groups: [
+      ["Trocken", "", [
+        ["80 g", "Weizenmehl"],
+        ["20 g", "Kakaopulver"],
+        ["65 g", "Schoko-Proteinpulver"],
+        ["10 g", "Chunky Flavor"],
+        ["1 Prise", "Salz"]
+      ]],
+      ["Feucht", "", [
+        ["150 ml", "Eiklar"],
+        ["2", "Eier", "groß"],
+        ["100 g", "Cottage Cheese"],
+        ["20 g", "Apfelmus"],
+        ["20 ml", "Ahornsirup"],
+        ["5 ml", "Vanilleextrakt"],
+        ["", "Schokostückchen", "optional"]
+      ]]
+    ],
+    steps: [
+      "Den Backofen auf 180 °C vorheizen.",
+      "Mehl, Kakaopulver, Schoko-Proteinpulver, Chunky Flavor und Salz in einer Schüssel vermischen.",
+      "Eiklar, Eier, Cottage Cheese, Apfelmus, Ahornsirup und Vanilleextrakt in einen Mixer geben und etwa 10 Sekunden glatt mixen.",
+      "Die flüssige Mischung zu den trockenen Zutaten geben und vorsichtig unterheben, bis ein dicker, gleichmäßiger Teig entsteht.",
+      "Nach Wunsch Schokostückchen unterheben oder darüberstreuen.",
+      "Den Teig in eine mit Backpapier ausgelegte kleine Backform geben und gleichmäßig verteilen.",
+      "Bei 180 °C 12–15 Minuten backen. Für besonders fudgy Brownies eher Richtung 12 Minuten.",
+      "Die Brownies vollständig auskühlen lassen. Noch besser werden sie, wenn sie danach im Kühlschrank kalt gestellt werden.",
+      "In 9 gleich große Stücke schneiden und genießen."
+    ]
+  },
+  {
+    id: "crispy-chicken-caesar-salad", title: "Crispy Chicken Caesar Salad", kind: "herzhaft", meat: true,
+    yield: "", per: "", approx: true, n: [469, 62, 27, 12],
+    tags: "hähnchen chicken huhn salat airfryer heißluftfritteuse paniert",
+    groups: [
+      ["Crispy Chicken", "", [
+        ["ca. 450 g", "Hähnchenbrust"],
+        ["", "Salz und Pfeffer", "nach Geschmack"],
+        ["1 TL", "Zwiebelpulver"],
+        ["1 TL", "Knoblauchpulver"],
+        ["1 TL", "Paprikapulver"],
+        ["¼ TL", "Cayennepfeffer", "optional"]
+      ]],
+      ["Panade", "", [
+        ["ca. 40 g", "Weizenmehl"],
+        ["2", "Eier"],
+        ["", "Hot Sauce", "ein Schuss"],
+        ["ca. 50 g", "Cornflakes"],
+        ["ca. 30 g", "Semmelbrösel"],
+        ["", "Ölspray"]
+      ]],
+      ["Salat", "", [
+        ["4 Tassen", "Römersalat"],
+        ["ca. 40 g", "Croutons"],
+        ["20–30 g", "Parmesan", "gehobelt"]
+      ]],
+      ["Leichtes Caesar-Dressing", "", [
+        ["150 g", "griechischer Joghurt"],
+        ["1–2 TL", "Dijon-Senf"],
+        ["½", "Zitrone", "nur der Saft"],
+        ["2", "Sardellenfilets"],
+        ["1", "kleine Knoblauchzehe"],
+        ["ca. 15 g", "Parmesan", "fein gerieben"],
+        ["1 TL", "Worcestersauce"],
+        ["", "schwarzer Pfeffer und Salz", "nach Geschmack"],
+        ["1–2 EL", "Wasser", "falls das Dressing zu dick ist"]
+      ]]
+    ],
+    steps: [
+      "Die Hähnchenbrust zwischen Backpapier oder Frischhaltefolie legen und flacher klopfen, damit sie gleichmäßig dick ist.",
+      "Das Hähnchen auf beiden Seiten mit Salz, Pfeffer, Zwiebelpulver, Knoblauchpulver, Paprikapulver und optional Cayennepfeffer würzen.",
+      ["Drei Schüsseln für die Panade vorbereiten:", [
+        "Schüssel 1: Mehl",
+        "Schüssel 2: Eier mit etwas Hot Sauce verquirlen",
+        "Schüssel 3: zerdrückte Cornflakes mit Semmelbröseln vermischen"
+      ]],
+      "Das Hähnchen zuerst vollständig im Mehl wenden.",
+      "Danach durch die Eiermischung ziehen.",
+      "Anschließend kräftig in die Cornflakes-Semmelbrösel-Mischung drücken, sodass das Hähnchen rundherum paniert ist.",
+      "Das panierte Hähnchen leicht mit Ölspray besprühen.",
+      "Im Airfryer bei etwa 195 °C ca. 15 Minuten goldbraun und knusprig garen. Das Hähnchen muss innen vollständig durchgegart sein.",
+      "Für das Dressing Joghurt, Dijon-Senf, Zitronensaft, Sardellen, Knoblauch, Parmesan, Worcestersauce und Pfeffer fein pürieren.",
+      "Ist das Dressing zu dick, 1–2 EL Wasser dazugeben und erneut verrühren.",
+      "Römersalat waschen, trocknen und grob schneiden.",
+      "Den Salat mit dem Caesar-Dressing vermengen.",
+      "Croutons und gehobelten Parmesan darübergeben.",
+      "Das knusprige Hähnchen in Streifen schneiden und auf dem Salat verteilen."
+    ]
+  },
+  {
+    id: "dumpling-lasagna", title: "Dumpling Lasagna", kind: "herzhaft", meat: true,
+    yield: "4 Portionen", per: "pro Portion", approx: true, n: [350, 30, 30, 12],
+    tags: "huhn hähnchen schwein faschiertes hackfleisch asiatisch gedämpft dampfgarer wonton",
+    groups: [
+      ["Dumpling-Füllung", "", [
+        ["450 g", "Hühner- oder Schweinefaschiertes"],
+        ["3", "Frühlingszwiebeln", "fein geschnitten"],
+        ["6", "Knoblauchzehen"],
+        ["3 EL", "Sojasauce"],
+        ["1 EL", "Reisessig"],
+        ["1 EL", "geröstetes Sesamöl"],
+        ["2 EL", "Chili Crunch", "knuspriges Chiliöl"],
+        ["1 EL", "Ingwer", "frisch, gerieben"],
+        ["1 EL", "Austernsauce"]
+      ]],
+      ["Lasagne", "", [
+        ["18–24", "Wonton- oder Dumpling-Teigblätter"],
+        ["2 EL", "Hühnerbrühe oder Wasser"]
+      ]],
+      ["Zum Garnieren", "nach Geschmack", [
+        ["", "Sojasauce"],
+        ["", "Chili Crunch"],
+        ["", "Frühlingszwiebeln"],
+        ["", "Sesamsamen"]
+      ]]
+    ],
+    steps: [
+      "Das Faschierte in eine große Schüssel geben.",
+      "Frühlingszwiebeln und Knoblauch fein hacken und zum Fleisch geben.",
+      "Sojasauce, Reisessig, Sesamöl, Chili Crunch, geriebenen Ingwer und Austernsauce dazugeben.",
+      "Alles gründlich vermischen, bis eine gleichmäßige Fleischmasse entsteht.",
+      "Einen großen Topf mit etwas Wasser füllen und einen Dampfgareinsatz hineinstellen. Das Wasser zum leichten Kochen bringen.",
+      "Eine hitzebeständige Auflaufform (ca. 20 × 20 cm) vorbereiten, die in den Dampfgareinsatz passt.",
+      "Die Wonton-Teigblätter einzeln 1–2 Sekunden in Wasser tauchen, damit sie etwas weicher werden.",
+      "Den Boden der Form mit etwa 6 Teigblättern auslegen. Sie dürfen sich leicht überlappen.",
+      "Eine dünne Schicht der rohen Fleischfüllung gleichmäßig darauf verteilen.",
+      "Wieder eine Schicht Teigblätter darauflegen und erneut Fleischfüllung verteilen.",
+      "Wiederholen, bis die Füllung aufgebraucht ist. Insgesamt entstehen etwa 4 Schichten.",
+      "Mit einer letzten Schicht Teigblätter abschließen.",
+      "Die 2 EL Hühnerbrühe oder Wasser gleichmäßig darüberträufeln.",
+      "Die Form vorsichtig in den Dampfgareinsatz stellen. Sie darf nicht direkt im Wasser stehen.",
+      "Den Topf mit einem Deckel schließen und die Lasagna bei leicht kochendem Wasser 20–22 Minuten dämpfen, bis das Fleisch vollständig durchgegart ist.",
+      "Die fertige Dumpling Lasagna vorsichtig aus dem Dampfgarer nehmen.",
+      "Mit etwas Sojasauce und Chili Crunch beträufeln.",
+      "Frühlingszwiebeln und Sesamsamen darüberstreuen.",
+      "Wie eine normale Lasagne in 4 gleich große Stücke schneiden und servieren."
+    ]
+  }
+];
+
+/* ============================== Helfer ============================== */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = n => n.toLocaleString("de-DE");
+const norm = s => s.toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/[̀-ͯ]/g, "");
+const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+RECIPES.forEach(r => {
+  const words = [r.title, r.tags, r.kind === "suess" ? "süß suess dessert" : "herzhaft", r.meat ? "fleisch" : "vegetarisch veggie"];
+  r.groups.forEach(([g, , items]) => { words.push(g); items.forEach(i => words.push(i[1])); });
+  r._idx = norm(words.join(" "));
+  const kc = [r.n[1] * 4, r.n[2] * 4, r.n[3] * 9];
+  const sum = kc.reduce((a, b) => a + b, 0);
+  r._share = kc.map(v => Math.round(v / sum * 100));
+});
+
+const KEY = "naehrwerk:v1";
+const store = (() => {
+  let data = { missing: {}, done: {} };
+  try { const raw = localStorage.getItem(KEY); if (raw) data = Object.assign(data, JSON.parse(raw)); } catch (e) {}
+  return {
+    data,
+    save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
+  };
+})();
+
+const FILTERS = [
+  { id: "alle", label: "Alle", test: () => true },
+  { id: "fleisch", label: "Fleisch", test: r => r.meat },
+  { id: "vegetarisch", label: "Vegetarisch", test: r => !r.meat },
+  { id: "suess", label: "Süß", test: r => r.kind === "suess" }
+];
+const SECTIONS = [["herzhaft", "Herzhaft"], ["suess", "Süß"]];
+const ui = { filter: "alle", homeScroll: 0 };
+
+const home = $("#home"), detail = $("#detail"), list = $("#list"), q = $("#q"), clearBtn = $("#clear"), chipsEl = $("#chips"), toolbar = $("#toolbar");
+
+function macroBar(r) {
+  return `<span class="macro" aria-hidden="true">${r._share.map(v => `<i style="flex:${v}"></i>`).join("")}</span>`;
+}
+
+/* ============================== Startseite ============================== */
+chipsEl.innerHTML = FILTERS.map(f => `<button type="button" class="chip" data-f="${f.id}" aria-pressed="false">${f.label}<span class="n"></span></button>`).join("");
+$("#hero-count").textContent = `${RECIPES.length} Rezepte · Ø ${fmt(Math.round(RECIPES.reduce((a, r) => a + r.n[1], 0) / RECIPES.length))} g Eiweiß`;
+
+function renderHome() {
+  const words = norm(q.value.trim()).split(/\s+/).filter(Boolean);
+  const matchQ = r => words.every(w => r._idx.includes(w));
+  clearBtn.hidden = !q.value;
+
+  chipsEl.querySelectorAll(".chip").forEach(btn => {
+    const f = FILTERS.find(x => x.id === btn.dataset.f);
+    btn.setAttribute("aria-pressed", String(f.id === ui.filter));
+    btn.querySelector(".n").textContent = RECIPES.filter(r => f.test(r) && matchQ(r)).length;
+  });
+
+  const cur = FILTERS.find(f => f.id === ui.filter);
+  const hits = RECIPES.filter(r => cur.test(r) && matchQ(r));
+
+  if (!hits.length) {
+    list.innerHTML = `<div class="empty"><p>${q.value ? `Nichts gefunden für „${esc(q.value.trim())}“.` : "Keine Rezepte in diesem Filter."}</p>
+      <small>Probier eine Zutat wie „Hähnchen“ oder „Skyr“.</small>
+      <button type="button" class="text-btn" id="reset-search">Suche und Filter zurücksetzen</button></div>`;
+    return;
+  }
+
+  list.innerHTML = SECTIONS.map(([key, label]) => {
+    const rs = hits.filter(r => r.kind === key).sort((a, b) => a.title.localeCompare(b.title, "de"));
+    if (!rs.length) return "";
+    return `<section class="section" aria-label="${label}">
+      <div class="section-h"><h2>${label}</h2><span>${rs.length} ${rs.length === 1 ? "Rezept" : "Rezepte"}</span></div>
+      ${rs.map(rowHTML).join("")}
+    </section>`;
+  }).join("");
+}
+
+function rowHTML(r) {
+  const miss = (store.data.missing[r.id] || []).length;
+  const meta = [`${r.approx ? "ca. " : ""}${fmt(r.n[0])} kcal`, r.yield].filter(Boolean).map(esc).join('<span aria-hidden="true">·</span>');
+  return `<a class="row" href="#${r.id}">
+    <div>
+      <h3 class="row-title">${esc(r.title)}</h3>
+      <p class="row-meta">${meta}${miss ? `<span class="miss">${miss} ${miss === 1 ? "fehlt" : "fehlen"}</span>` : ""}</p>
+      ${macroBar(r)}
+    </div>
+    <div class="row-pro"><b>${fmt(Math.round(r.n[1]))}</b><span>g Eiweiß</span></div>
+  </a>`;
+}
+
+q.addEventListener("input", renderHome);
+q.addEventListener("keydown", e => { if (e.key === "Escape") { q.value = ""; renderHome(); } });
+$("#search-form").addEventListener("submit", e => { e.preventDefault(); q.blur(); });
+clearBtn.addEventListener("click", () => { q.value = ""; renderHome(); q.focus(); });
+chipsEl.addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  ui.filter = b.dataset.f; renderHome();
+});
+list.addEventListener("click", e => {
+  if (e.target.closest("#reset-search")) { q.value = ""; ui.filter = "alle"; renderHome(); }
+});
+
+/* ============================== Rezeptansicht ============================== */
+let current = null;
+
+function renderDetail(r) {
+  current = r;
+  const miss = new Set(store.data.missing[r.id] || []);
+  const done = new Set(store.data.done[r.id] || []);
+  const unit = (v, u) => `${fmt(v)}<small>${u}</small>`;
+  const eyebrow = r.kind === "suess" ? "Süß · vegetarisch" : (r.meat ? "Herzhaft · mit Fleisch" : "Herzhaft · vegetarisch");
+  const perLabel = (r.per || "Portionsgröße nicht angegeben") + (r.approx ? " · ca." : "");
+
+  const groups = r.groups.map(([name, note, items], gi) => `
+    <div class="grp">
+      ${name || note ? `<div class="grp-h">${name ? `<h3>${esc(name)}</h3>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</div>` : ""}
+      <ul>${items.map(([amt, nm, hint], ii) => {
+        const k = `${gi}-${ii}`;
+        return `<li><button type="button" class="ing" data-k="${k}" aria-pressed="${miss.has(k)}">
+          <span class="box">${ICON_CHECK}</span>
+          <span class="amt">${esc(amt || "–")}</span>
+          <span class="name">${esc(nm)}${hint ? `<small>${esc(hint)}</small>` : ""}</span>
+          <span class="flag">fehlt</span>
+        </button></li>`;
+      }).join("")}</ul>
+    </div>`).join("");
+
+  const steps = r.steps.map((s, i) => {
+    const [text, sub] = Array.isArray(s) ? s : [s, null];
+    return `<li class="step" role="button" tabindex="0" data-s="${i}" aria-pressed="${done.has(i)}">
+      <span class="num"><span>${i + 1}</span>${ICON_CHECK}</span>
+      <div class="step-text">${esc(text)}${sub ? `<ul>${sub.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div>
+    </li>`;
+  }).join("");
+
+  detail.innerHTML = `
+    <header class="topbar gutter" id="topbar">
+      <a class="back" href="#" id="back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        Rezepte
+      </a>
+      <span class="topbar-title" aria-hidden="true">${esc(r.title)}</span>
+    </header>
+    <div class="gutter view-in">
+      <div class="d-head">
+        <p class="d-eyebrow">${eyebrow}</p>
+        <h1 class="d-title" id="d-title">${esc(r.title)}</h1>
+        ${r.yield ? `<p class="d-yield">Ergibt ${esc(r.yield)}</p>` : ""}
+      </div>
+
+      <section class="nutri" aria-label="Nährwerte">
+        <div class="nutri-grid">
+          <div><b>${fmt(r.n[0])}</b><span>kcal</span></div>
+          <div class="hl"><b>${unit(r.n[1], "g")}</b><span>Eiweiß</span></div>
+          <div><b>${unit(r.n[2], "g")}</b><span>Kohlenh.</span></div>
+          <div><b>${unit(r.n[3], "g")}</b><span>Fett</span></div>
+        </div>
+        ${macroBar(r)}
+        <div class="nutri-foot">
+          <span class="legend"><span><i style="background:var(--basil)"></i>${r._share[0]} %</span><span><i style="background:var(--kurkuma)"></i>${r._share[1]} %</span><span><i style="background:var(--sand)"></i>${r._share[2]} %</span></span>
+          <span>${esc(perLabel)}</span>
+        </div>
+      </section>
+
+      <section class="block" aria-labelledby="h-ing">
+        <div class="block-h"><h2 id="h-ing">Zutaten</h2><p>Tippe an, was dir fehlt</p></div>
+        ${groups}
+      </section>
+
+      <section class="block" aria-labelledby="h-steps">
+        <div class="block-h"><h2 id="h-steps">Zubereitung</h2><p>${r.steps.length} Schritte</p></div>
+        <ol>${steps}</ol>
+        <div class="steps-foot" id="steps-foot"></div>
+      </section>
+
+      <p class="d-end"><a href="#">Zurück zu allen Rezepten</a></p>
+    </div>
+    <div class="cartbar gutter" id="cartbar" hidden>
+      <div class="cartbar-in">
+        <span class="cartbar-count" id="cart-count"></span>
+        <button type="button" class="btn-ghost" id="cart-reset">Zurücksetzen</button>
+        <button type="button" class="btn-solid" id="cart-copy">Liste kopieren</button>
+      </div>
+    </div>`;
+  updateCart();
+  updateStepsFoot();
+}
+
+function itemsFor(r, keys) {
+  const out = [];
+  r.groups.forEach(([, , items], gi) => items.forEach((it, ii) => { if (keys.has(`${gi}-${ii}`)) out.push(it); }));
+  return out;
+}
+
+function updateCart() {
+  const r = current, keys = new Set(store.data.missing[r.id] || []);
+  const bar = $("#cartbar");
+  bar.hidden = keys.size === 0;
+  $("#cart-count").innerHTML = `<b>${keys.size}</b> ${keys.size === 1 ? "fehlt" : "fehlen"}`;
+}
+
+function updateStepsFoot() {
+  const n = (store.data.done[current.id] || []).length;
+  $("#steps-foot").innerHTML = n ? `<span>${n} von ${current.steps.length} erledigt</span><button type="button" class="text-btn" id="steps-reset" style="margin:0">Neu starten</button>` : "";
+}
+
+function toggleIn(bucket, id, key) {
+  const set = new Set(store.data[bucket][id] || []);
+  set.has(key) ? set.delete(key) : set.add(key);
+  if (set.size) store.data[bucket][id] = [...set]; else delete store.data[bucket][id];
+  store.save();
+  return set.has(key);
+}
+
+detail.addEventListener("click", e => {
+  const ing = e.target.closest(".ing");
+  if (ing) { ing.setAttribute("aria-pressed", String(toggleIn("missing", current.id, ing.dataset.k))); updateCart(); return; }
+  const step = e.target.closest(".step");
+  if (step) { toggleStep(step); return; }
+  if (e.target.closest("#cart-reset")) {
+    delete store.data.missing[current.id]; store.save();
+    detail.querySelectorAll(".ing").forEach(b => b.setAttribute("aria-pressed", "false"));
+    updateCart(); return;
+  }
+  if (e.target.closest("#steps-reset")) {
+    delete store.data.done[current.id]; store.save();
+    detail.querySelectorAll(".step").forEach(s => s.setAttribute("aria-pressed", "false"));
+    updateStepsFoot(); return;
+  }
+  if (e.target.closest("#cart-copy")) { copyList(); return; }
+  const back = e.target.closest('a[href="#"]');
+  if (back) { e.preventDefault(); goHome(); }
+});
+detail.addEventListener("keydown", e => {
+  const step = e.target.closest(".step");
+  if (step && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleStep(step); }
+});
+function toggleStep(step) {
+  const on = toggleIn("done", current.id, Number(step.dataset.s));
+  step.setAttribute("aria-pressed", String(on));
+  updateStepsFoot();
+}
+
+function copyList() {
+  const items = itemsFor(current, new Set(store.data.missing[current.id] || []));
+  const text = `Einkaufsliste · ${current.title}\n` + items.map(([a, n]) => `– ${a ? a + " " : ""}${n}`).join("\n");
+  const fallback = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    ta.remove();
+    toast(ok ? "Einkaufsliste kopiert" : "Kopieren nicht möglich");
+  };
+  try {
+    navigator.clipboard.writeText(text).then(() => toast("Einkaufsliste kopiert"), fallback);
+  } catch (e) { fallback(); }
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+/* Bildschirm beim Kochen anlassen (wenn erlaubt) */
+let wake = null;
+async function keepAwake(on) {
+  try {
+    if (on && "wakeLock" in navigator && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); }
+    if (!on && wake) { await wake.release(); wake = null; }
+  } catch (e) { wake = null; }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && current && !detail.hidden) keepAwake(true); });
+
+/* ============================== Navigation ============================== */
+function goHome() {
+  if (location.hash && location.hash !== "#") location.hash = "";
+  else route();
+}
+
+function route() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  const r = RECIPES.find(x => x.id === id);
+  if (r) {
+    if (!home.hidden) ui.homeScroll = window.scrollY;
+    home.hidden = true; detail.hidden = false;
+    renderDetail(r);
+    window.scrollTo(0, 0);
+    document.title = `${r.title} · Nährwerk`;
+    keepAwake(true);
+  } else {
+    const wasDetail = !detail.hidden;
+    detail.hidden = true; detail.innerHTML = ""; home.hidden = false; current = null;
+    renderHome();
+    window.scrollTo(0, wasDetail ? ui.homeScroll : 0);
+    document.title = "Nährwerk";
+    keepAwake(false);
+  }
+  onScroll();
+}
+
+function onScroll() {
+  if (!home.hidden) {
+    const top = parseFloat(getComputedStyle(toolbar).top) || 0;
+    toolbar.classList.toggle("stuck", toolbar.getBoundingClientRect().top <= top + .5);
+  } else {
+    const tb = $("#topbar"), h = $("#d-title");
+    if (tb && h) tb.classList.toggle("scrolled", h.getBoundingClientRect().bottom < tb.getBoundingClientRect().bottom);
+  }
+}
+let ticking = false;
+window.addEventListener("scroll", () => {
+  if (ticking) return; ticking = true;
+  requestAnimationFrame(() => { ticking = false; onScroll(); });
+}, { passive: true });
+window.addEventListener("hashchange", route);
+route();
+</script>

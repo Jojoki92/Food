@@ -1,0 +1,296 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script>
+const W = 1200, H = 1500;
+const c = document.getElementById('c'); c.width = W; c.height = H;
+const g = c.getContext('2d');
+let seed = 11;
+const rnd = () => (seed = (seed * 16807) % 2147483647, (seed - 1) / 2147483646);
+const R = (a, b) => a + rnd() * (b - a);
+const TAU = Math.PI * 2;
+
+function shadow(on, blur = 38, ox = 16, oy = 22, a = 0.42) {
+  if (on) { g.shadowColor = `rgba(4,10,6,${a})`; g.shadowBlur = blur; g.shadowOffsetX = ox; g.shadowOffsetY = oy; }
+  else { g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetX = 0; g.shadowOffsetY = 0; }
+}
+function circle(x, y, r) { g.beginPath(); g.arc(x, y, r, 0, TAU); }
+function blobPath(cx, cy, r, irr, n = 9, squash = 0.86) {
+  const p = [];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * TAU + R(-0.15, 0.15), rr = r * (1 + R(-irr, irr));
+    p.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * squash]);
+  }
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  g.beginPath();
+  const s = mid(p[n - 1], p[0]); g.moveTo(s[0], s[1]);
+  for (let i = 0; i < n; i++) { const q = p[(i + 1) % n], m = mid(p[i], q); g.quadraticCurveTo(p[i][0], p[i][1], m[0], m[1]); }
+  g.closePath();
+}
+function leaf(x, y, a, L, w, col) {
+  g.save(); g.translate(x, y); g.rotate(a);
+  g.fillStyle = col;
+  g.beginPath(); g.moveTo(0, 0);
+  g.bezierCurveTo(L * 0.25, -w, L * 0.75, -w * 0.9, L, 0);
+  g.bezierCurveTo(L * 0.75, w * 0.9, L * 0.25, w, 0, 0); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(L * 0.04, 0); g.quadraticCurveTo(L * 0.5, -w * 0.12, L * 0.92, 0); g.stroke();
+  g.restore();
+}
+function sprig(x, y, a, len, col) {
+  g.save(); g.translate(x, y); g.rotate(a);
+  g.strokeStyle = '#4d7a3f'; g.lineWidth = 4; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(len * 0.5, -len * 0.08, len, 0); g.stroke();
+  const n = 5;
+  for (let i = 1; i <= n; i++) {
+    const t = i / (n + 0.4), px = len * t, py = -len * 0.06 * Math.sin(t * Math.PI);
+    const s = 1 - t * 0.35;
+    leaf(px, py, -0.9 + R(-.15, .15), 46 * s, 17 * s, col);
+    leaf(px, py, 0.9 + R(-.15, .15), 46 * s, 17 * s, col);
+  }
+  leaf(len, 0, R(-.2, .2), 52, 19, col);
+  g.restore();
+}
+
+/* ---------- ground: dark basil slate ---------- */
+const bg = g.createLinearGradient(0, 0, W * 0.3, H);
+bg.addColorStop(0, '#2e4838'); bg.addColorStop(0.55, '#223829'); bg.addColorStop(1, '#16251c');
+g.fillStyle = bg; g.fillRect(0, 0, W, H);
+// stone mottling
+for (let i = 0; i < 70; i++) {
+  const x = R(0, W), y = R(0, H), r = R(60, 260);
+  const m = g.createRadialGradient(x, y, 0, x, y, r);
+  const l = rnd() > 0.5 ? '255,255,255' : '0,0,0';
+  m.addColorStop(0, `rgba(${l},${R(0.015, 0.04)})`); m.addColorStop(1, `rgba(${l},0)`);
+  g.fillStyle = m; g.fillRect(x - r, y - r, r * 2, r * 2);
+}
+
+/* ---------- tortillas (top-left) ---------- */
+function tortilla(x, y, r) {
+  shadow(true, 34, 12, 18, 0.38);
+  const t = g.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+  t.addColorStop(0, '#efdcb0'); t.addColorStop(1, '#d9bd84');
+  blobPath(x, y, r, 0.025, 14, 1); g.fillStyle = t; g.fill();
+  shadow(false);
+  g.save(); blobPath(x, y, r, 0.0, 14, 1); g.clip();
+  for (let i = 0; i < 70; i++) {
+    const a = R(0, TAU), d = Math.sqrt(rnd()) * r * 0.95;
+    g.fillStyle = `rgba(${R(120, 160) | 0},${R(80, 100) | 0},${R(30, 50) | 0},${R(0.18, 0.5)})`;
+    g.beginPath(); g.ellipse(x + Math.cos(a) * d, y + Math.sin(a) * d, R(4, 16), R(3, 9), R(0, TAU), 0, TAU); g.fill();
+  }
+  g.restore();
+}
+tortilla(70, 250, 250);
+tortilla(200, 120, 245);
+
+/* ---------- main bowl: rice + butter chicken ---------- */
+const B = { x: 805, y: 500, r: 330 };
+shadow(true, 60, 26, 34, 0.5);
+circle(B.x, B.y, B.r); g.fillStyle = '#e8e3d7'; g.fill();
+shadow(false);
+// rim shading
+let rim = g.createRadialGradient(B.x - 120, B.y - 140, 40, B.x, B.y, B.r);
+rim.addColorStop(0, '#f4f1e9'); rim.addColorStop(1, '#d3ccbc');
+circle(B.x, B.y, B.r); g.fillStyle = rim; g.fill();
+// inner wall
+let wall = g.createRadialGradient(B.x + 40, B.y + 50, 120, B.x, B.y, 298);
+wall.addColorStop(0, '#e2dccf'); wall.addColorStop(1, '#bfb7a5');
+circle(B.x, B.y, 298); g.fillStyle = wall; g.fill();
+// rice
+g.save(); circle(B.x + 6, B.y + 8, 276); g.clip();
+g.fillStyle = '#ece8de'; g.fillRect(B.x - 300, B.y - 300, 600, 600);
+for (let i = 0; i < 1500; i++) {
+  const a = R(0, TAU), d = Math.sqrt(rnd()) * 282;
+  const x = B.x + 6 + Math.cos(a) * d, y = B.y + 8 + Math.sin(a) * d;
+  g.fillStyle = rnd() > 0.35 ? `rgba(255,255,252,${R(.7, 1)})` : `rgba(206,198,180,${R(.5, .9)})`;
+  g.beginPath(); g.ellipse(x, y, R(7, 10), R(2.4, 3.4), R(0, TAU), 0, TAU); g.fill();
+}
+// inner shadow of the rim on the rice
+const ish = g.createRadialGradient(B.x - 40, B.y - 50, 180, B.x + 6, B.y + 8, 282);
+ish.addColorStop(0, 'rgba(60,45,20,0)'); ish.addColorStop(1, 'rgba(60,45,20,.28)');
+g.fillStyle = ish; g.fillRect(B.x - 300, B.y - 300, 600, 600);
+
+// sauce pool on the right half
+const S = { x: B.x + 95, y: B.y + 30 };
+const sg = g.createRadialGradient(S.x - 40, S.y - 60, 20, S.x, S.y, 250);
+sg.addColorStop(0, '#d96a33'); sg.addColorStop(0.7, '#b9481f'); sg.addColorStop(1, '#9b3a18');
+blobPath(S.x, S.y, 168, 0.12, 11, 1.08); g.fillStyle = sg; g.fill();
+// chicken pieces
+const pieces = [];
+for (let i = 0; i < 16; i++) {
+  const a = R(0, TAU), d = Math.sqrt(rnd()) * 112;
+  pieces.push([S.x + Math.cos(a) * d, S.y + Math.sin(a) * d * 1.1, R(26, 38)]);
+}
+pieces.sort((p, q) => p[1] - q[1]);
+for (const [x, y, r] of pieces) {
+  shadow(true, 12, 5, 7, 0.35);
+  blobPath(x, y, r, 0.3, 6, 0.82);
+  const pg = g.createRadialGradient(x - r * 0.35, y - r * 0.4, 2, x, y, r * 1.1);
+  pg.addColorStop(0, '#ec9a55'); pg.addColorStop(0.6, '#c9662c'); pg.addColorStop(1, '#a3461d');
+  g.fillStyle = pg; g.fill();
+  shadow(false);
+  // charred edge flecks
+  for (let k = 0; k < 4; k++) {
+    g.fillStyle = `rgba(70,28,10,${R(.25, .5)})`;
+    g.beginPath(); g.ellipse(x + R(-r * .6, r * .6), y + R(-r * .5, r * .5), R(2, 5), R(1.5, 3), R(0, TAU), 0, TAU); g.fill();
+  }
+}
+// yogurt drizzle
+g.strokeStyle = 'rgba(250,248,240,.92)'; g.lineWidth = 9; g.lineCap = 'round'; g.lineJoin = 'round';
+g.beginPath();
+g.moveTo(S.x - 120, S.y - 60);
+g.bezierCurveTo(S.x - 60, S.y - 120, S.x - 10, S.y + 10, S.x + 50, S.y - 50);
+g.bezierCurveTo(S.x + 90, S.y - 90, S.x + 120, S.y - 20, S.x + 135, S.y - 30);
+g.stroke();
+g.lineWidth = 6;
+g.beginPath(); g.moveTo(S.x - 110, S.y + 70); g.bezierCurveTo(S.x - 40, S.y + 30, S.x + 10, S.y + 120, S.x + 90, S.y + 85); g.stroke();
+// coriander leaves + spring onion rings on top
+for (let i = 0; i < 12; i++) {
+  const a = R(0, TAU), d = Math.sqrt(rnd()) * 150;
+  leaf(S.x + Math.cos(a) * d - 20, S.y + Math.sin(a) * d, R(0, TAU), R(24, 34), R(10, 14), rnd() > .5 ? '#5f9a49' : '#4f8a3e');
+}
+for (let i = 0; i < 26; i++) {
+  const a = R(0, TAU), d = Math.sqrt(rnd()) * 255;
+  const x = B.x + Math.cos(a) * d, y = B.y + Math.sin(a) * d, r = R(7, 11);
+  g.strokeStyle = '#86b85a'; g.lineWidth = R(3.5, 5);
+  g.beginPath(); g.ellipse(x, y, r, r * R(.75, 1), R(0, TAU), 0, TAU); g.stroke();
+}
+// sesame
+for (let i = 0; i < 40; i++) {
+  const a = R(0, TAU), d = Math.sqrt(rnd()) * 200;
+  g.fillStyle = 'rgba(248,236,206,.95)';
+  g.beginPath(); g.ellipse(S.x + Math.cos(a) * d, S.y + Math.sin(a) * d, 4, 2.2, R(0, TAU), 0, TAU); g.fill();
+}
+g.restore();
+// rim highlight
+g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 4;
+g.beginPath(); g.arc(B.x, B.y, B.r - 6, Math.PI * 0.95, Math.PI * 1.55); g.stroke();
+
+/* ---------- yogurt bowl ---------- */
+const Y = { x: 300, y: 660, r: 138 };
+shadow(true, 40, 16, 24, 0.48);
+circle(Y.x, Y.y, Y.r); g.fillStyle = '#3c3f39'; g.fill();
+shadow(false);
+const yr = g.createRadialGradient(Y.x - 50, Y.y - 60, 10, Y.x, Y.y, Y.r);
+yr.addColorStop(0, '#5a5e56'); yr.addColorStop(1, '#2d302b');
+circle(Y.x, Y.y, Y.r); g.fillStyle = yr; g.fill();
+// speckles on the stoneware
+for (let i = 0; i < 90; i++) {
+  const a = R(0, TAU), d = R(Y.r * 0.86, Y.r * 0.99);
+  g.fillStyle = `rgba(230,220,200,${R(.15, .45)})`;
+  circle(Y.x + Math.cos(a) * d, Y.y + Math.sin(a) * d, R(.8, 2)); g.fill();
+}
+const yo = g.createRadialGradient(Y.x - 30, Y.y - 40, 10, Y.x, Y.y, 116);
+yo.addColorStop(0, '#fdfcf8'); yo.addColorStop(1, '#e7e2d6');
+circle(Y.x + 3, Y.y + 4, 114); g.fillStyle = yo; g.fill();
+g.strokeStyle = 'rgba(205,198,182,.75)'; g.lineWidth = 5;
+for (let k = 0; k < 3; k++) { g.beginPath(); g.arc(Y.x + 8 - k * 6, Y.y + 6 + k * 4, 30 + k * 24, R(0, 1), R(3.4, 5)); g.stroke(); }
+// olive oil + paprika dust
+for (let i = 0; i < 120; i++) {
+  const a = R(0, TAU), d = Math.sqrt(rnd()) * 55;
+  g.fillStyle = `rgba(178,54,30,${R(.5, .95)})`;
+  circle(Y.x - 20 + Math.cos(a) * d, Y.y + 20 + Math.sin(a) * d, R(.8, 2.2)); g.fill();
+}
+
+/* ---------- spice heaps ---------- */
+function heap(x, y, r, c1, c2) {
+  shadow(true, 8, 3, 4, 0.28);
+  const hg = g.createRadialGradient(x - r * .15, y - r * .2, r * .1, x, y, r * 1.05);
+  hg.addColorStop(0, c1); hg.addColorStop(.75, c2); hg.addColorStop(1, c2);
+  blobPath(x, y, r, .14, 14, .8); g.fillStyle = hg; g.fill();
+  shadow(false);
+  for (let i = 0; i < 260; i++) { const a = R(0, TAU), d = r * R(.85, 1.35); g.fillStyle = c2; g.globalAlpha = R(.3, .8); circle(x + Math.cos(a) * d, y + Math.sin(a) * d * .8, R(.8, 2.2)); g.fill(); }
+  g.globalAlpha = 1;
+  for (let i = 0; i < 160; i++) {
+    const a = R(0, TAU), d = Math.sqrt(rnd()) * r * 1.12;
+    g.fillStyle = rnd() > .5 ? 'rgba(255,240,210,.22)' : 'rgba(30,10,0,.25)';
+    circle(x + Math.cos(a) * d, y + Math.sin(a) * d * .92, R(.6, 1.8)); g.fill();
+  }
+}
+heap(560, 910, 54, '#d0563a', '#9c3020');   // Paprika
+heap(690, 965, 46, '#f0be44', '#c98c16');   // Kurkuma
+heap(470, 1010, 40, '#9a6438', '#5e3a1f');  // Garam Masala
+
+/* ---------- lemon half (right edge) ---------- */
+const L = { x: 1100, y: 905, r: 104 };
+shadow(true, 30, 12, 18, 0.45);
+circle(L.x, L.y, L.r); g.fillStyle = '#e4b928'; g.fill();
+shadow(false);
+circle(L.x, L.y, L.r - 8); g.fillStyle = '#f5ecc3'; g.fill();
+const lf = g.createRadialGradient(L.x - 20, L.y - 20, 4, L.x, L.y, L.r - 14);
+lf.addColorStop(0, '#f8e27a'); lf.addColorStop(1, '#eccc3c');
+circle(L.x, L.y, L.r - 14); g.fillStyle = lf; g.fill();
+g.strokeStyle = '#f6eecb'; g.lineWidth = 5; g.lineCap = 'round';
+for (let i = 0; i < 10; i++) {
+  const a = i / 10 * TAU + .2;
+  g.beginPath(); g.moveTo(L.x + Math.cos(a) * 12, L.y + Math.sin(a) * 12); g.lineTo(L.x + Math.cos(a) * (L.r - 16), L.y + Math.sin(a) * (L.r - 16)); g.stroke();
+}
+circle(L.x, L.y, 11); g.fillStyle = '#f6eecb'; g.fill();
+
+/* ---------- chili ---------- */
+function chili(x0, y0, x1, y1, cx, cy) {
+  const pts = [];
+  for (let i = 0; i <= 60; i++) {
+    const t = i / 60, u = 1 - t;
+    pts.push([u * u * x0 + 2 * u * t * cx + t * t * x1, u * u * y0 + 2 * u * t * cy + t * t * y1, 20 * (1 - t * .85) + 2]);
+  }
+  shadow(true, 16, 7, 10, 0.42);
+  g.fillStyle = '#a82a18';
+  for (const [x, y, r] of pts) { circle(x, y, r); g.fill(); }
+  shadow(false);
+  g.fillStyle = '#c23a22';
+  for (const [x, y, r] of pts) { circle(x - 2, y - 3, r * .8); g.fill(); }
+  g.strokeStyle = 'rgba(255,190,160,.55)'; g.lineWidth = 3; g.lineCap = 'round';
+  g.beginPath(); pts.slice(4, 40).forEach(([x, y, r], i) => i ? g.lineTo(x - 4, y - r * .55) : g.moveTo(x - 4, y - r * .55)); g.stroke();
+  // stem
+  g.strokeStyle = '#557c3b'; g.lineWidth = 9;
+  g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 - 26, y0 - 6, x0 - 40, y0 - 30); g.stroke();
+  g.fillStyle = '#4b7034'; circle(x0 + 2, y0, 15); g.fill();
+}
+chili(110, 880, 300, 1000, 160, 1000);
+
+/* ---------- garlic cloves ---------- */
+function clove(x, y, a, s) {
+  g.save(); g.translate(x, y); g.rotate(a); g.scale(s, s);
+  shadow(true, 12, 5, 7, 0.4);
+  g.beginPath(); g.moveTo(0, -38);
+  g.bezierCurveTo(26, -20, 30, 22, 8, 34); g.bezierCurveTo(-4, 38, -22, 30, -24, 12);
+  g.bezierCurveTo(-26, -8, -14, -26, 0, -38); g.closePath();
+  const cg = g.createLinearGradient(-20, -30, 20, 30); cg.addColorStop(0, '#f6f0e2'); cg.addColorStop(1, '#d9cdb4');
+  g.fillStyle = cg; g.fill(); shadow(false);
+  g.strokeStyle = 'rgba(170,150,115,.5)'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(0, -34); g.bezierCurveTo(10, -10, 10, 14, 2, 32); g.stroke();
+  g.fillStyle = '#a88b5c'; circle(0, -37, 3.5); g.fill();
+  g.restore();
+}
+clove(930, 905, .5, 1.05);
+clove(975, 985, -.4, .9);
+
+/* ---------- herbs + loose spring onion ---------- */
+sprig(430, 330, -0.5, 170, '#5a9446');
+sprig(520, 70, 0.35, 150, '#4f873d');
+sprig(1040, 790, 2.75, 130, '#5a9446');
+for (let i = 0; i < 9; i++) leaf(R(380, 700), R(780, 860), R(0, TAU), R(26, 36), R(10, 14), '#5b9247');
+for (let i = 0; i < 5; i++) {
+  const x = R(600, 800), y = R(1000, 1050), r = R(8, 11);
+  g.strokeStyle = '#86b85a'; g.lineWidth = 4.5;
+  g.beginPath(); g.ellipse(x, y, r, r * .85, R(0, TAU), 0, TAU); g.stroke();
+}
+
+/* ---------- light + calm lower area ---------- */
+const lg = g.createRadialGradient(240, 160, 40, 240, 160, 1200);
+lg.addColorStop(0, 'rgba(255,240,205,.10)'); lg.addColorStop(1, 'rgba(255,240,205,0)');
+g.fillStyle = lg; g.fillRect(0, 0, W, H);
+const vg = g.createLinearGradient(0, 960, 0, H);
+vg.addColorStop(0, 'rgba(14,24,18,0)'); vg.addColorStop(1, 'rgba(14,24,18,.82)');
+g.fillStyle = vg; g.fillRect(0, 0, W, H);
+
+/* ---------- grain ---------- */
+const img = g.getImageData(0, 0, W, H), d = img.data;
+for (let i = 0; i < d.length; i += 4) {
+  const n = (rnd() - 0.5) * 22;
+  d[i] += n; d[i + 1] += n; d[i + 2] += n;
+}
+g.putImageData(img, 0, 0);
+window.__done = true;
+</script></body></html>
