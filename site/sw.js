@@ -1,4 +1,4 @@
-const C = "mealprep-1795619112563";
+const C = "mealprep-1795620246817";
 self.oninstall = e => e.waitUntil(caches.open(C).then(c => c.addAll(["./","start.jpg","rezepte.txt","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png","favicon-32.png"])).then(() => self.skipWaiting()));
 self.onactivate = e => e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x != C).map(x => caches.delete(x)))).then(() => self.clients.claim()));
 self.onfetch = e => {
