@@ -1,6 +1,6 @@
 # Nährwerk
 
-Persönliche Rezept-App: Suche, Filter (Fleisch / Vegetarisch / Süß), abhakbare Zutaten („fehlt“) mit kopierbarer Einkaufsliste und Zubereitung Schritt für Schritt.
+Persönliche Rezept-App: Suche, Filter (Fleisch / Vegetarisch / Süß), Zutaten abhaken, die man schon hat; der Rest wird als Einkaufsliste kopiert und Zubereitung Schritt für Schritt.
 
 - `index.html` – die App (Rezepte stehen oben im `<script>` im Array `RECIPES`)
 - `start.jpg` – Startbild

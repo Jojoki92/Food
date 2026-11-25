@@ -147,14 +147,7 @@ ul, ol { padding: 0; list-style: none; }
 .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--bg) 70%, transparent); }
 
-.legend {
-  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
-  padding-top: 8px;
-  font: 400 12px var(--f-num); color: var(--muted);
-}
-.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
-
-.section { padding-top: 26px; }
+.section { padding-top: 22px; }
 .section-h {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   padding-bottom: 10px; border-bottom: 1.5px solid var(--ink);
@@ -179,17 +172,12 @@ ul, ol { padding: 0; list-style: none; }
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
   margin: 6px 0 10px; font-size: 13.5px; color: var(--muted);
 }
-.miss {
-  font: 600 11px/1 var(--f-num); letter-spacing: .04em; text-transform: uppercase;
-  color: var(--paprika); padding: 4px 7px; border-radius: 6px; background: var(--paprika-soft);
-}
 .macro { display: flex; gap: 2px; height: 4px; max-width: 190px; border-radius: 3px; overflow: hidden; }
 .macro i:nth-child(1) { background: var(--basil); }
 .macro i:nth-child(2) { background: var(--kurkuma); }
 .macro i:nth-child(3) { background: var(--sand); }
-.row-pro { text-align: right; min-width: 64px; }
-.row-pro b { display: block; font: 500 30px/1 var(--f-num); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
-.row-pro span { display: block; margin-top: 4px; font: 500 10.5px var(--f-num); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.row-go { color: var(--line-strong); transition: color .15s, transform .15s; }
+.row:hover .row-go { color: var(--ink); transform: translateX(2px); }
 
 .empty { padding: 48px 0 24px; text-align: left; }
 .empty p { font: 650 22px/1.25 var(--f-display); letter-spacing: -.01em; max-width: 22ch; }
@@ -223,8 +211,7 @@ ul, ol { padding: 0; list-style: none; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } }
 
 .d-head { padding-top: 12px; }
-.d-eyebrow { font: 500 12px/1 var(--f-num); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.d-title { margin-top: 12px; font: 750 clamp(32px, 9vw, 44px)/1.02 var(--f-display); letter-spacing: -.03em; text-wrap: balance; }
+.d-title { margin-top: 4px; font: 750 clamp(32px, 9vw, 44px)/1.02 var(--f-display); letter-spacing: -.03em; text-wrap: balance; }
 .d-yield { margin-top: 10px; color: var(--muted); font-size: 15px; }
 
 .nutri {
@@ -237,12 +224,9 @@ ul, ol { padding: 0; list-style: none; }
 .nutri-grid b small { font-size: 13px; letter-spacing: 0; margin-left: 2px; color: var(--muted); }
 .nutri-grid span { display: block; margin-top: 4px; font-size: 12.5px; color: var(--muted); }
 .nutri-grid .hl b { color: var(--basil); }
+.nutri-grid i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
 .nutri .macro { max-width: none; height: 6px; margin-top: 16px; }
-.nutri-foot {
-  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin-top: 10px;
-  font: 400 12px var(--f-num); color: var(--muted);
-}
-.nutri-foot .legend { padding: 0; }
+.nutri-foot { margin-top: 10px; font: 400 12px var(--f-num); color: var(--muted); text-align: right; }
 
 .block { padding-top: 34px; }
 .block-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1.5px solid var(--ink); }
@@ -255,7 +239,7 @@ ul, ol { padding: 0; list-style: none; }
 .grp-h small { font-size: 13px; color: var(--muted); }
 
 .ing {
-  display: grid; grid-template-columns: 24px 4.9rem minmax(0, 1fr) auto; gap: 12px; align-items: start;
+  display: grid; grid-template-columns: 24px 4.9rem minmax(0, 1fr); gap: 12px; align-items: start;
   padding: 12px 8px 12px 6px; margin-left: -6px; margin-right: -8px;
   width: calc(100% + 14px);
   border: 0; border-bottom: 1px solid var(--line); background: transparent; border-radius: 0;
@@ -271,14 +255,9 @@ ul, ol { padding: 0; list-style: none; }
 .amt { font: 500 14px/1.5 var(--f-num); color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
 .name { font-size: 16px; line-height: 1.45; }
 .name small { display: block; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
-.flag {
-  align-self: center; font: 600 11px/1 var(--f-num); letter-spacing: .06em; text-transform: uppercase;
-  color: var(--paprika); opacity: 0; transition: opacity .15s;
-}
-.ing[aria-pressed="true"] { background: var(--paprika-soft); }
-.ing[aria-pressed="true"] .box { background: var(--paprika); border-color: var(--paprika); color: #fff; transform: scale(1.04); }
-.ing[aria-pressed="true"] .amt { color: var(--ink); }
-.ing[aria-pressed="true"] .flag { opacity: 1; }
+.amt, .name { transition: opacity .15s; }
+.ing[aria-pressed="true"] .box { background: var(--basil); border-color: var(--basil); color: #fff; }
+.ing[aria-pressed="true"] .amt, .ing[aria-pressed="true"] .name { opacity: .42; }
 
 .step {
   display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px;
@@ -299,7 +278,8 @@ ul, ol { padding: 0; list-style: none; }
 .step[aria-pressed="true"] .num span { display: none; }
 .step[aria-pressed="true"] .num svg { display: block; }
 .step[aria-pressed="true"] .step-text { opacity: .45; }
-.steps-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 0 0; color: var(--muted); font-size: 14px; }
+.steps-foot { padding-top: 20px; }
+.steps-foot:empty { display: none; }
 .d-end { padding-block: 36px 140px; }
 .d-end a { color: var(--ink); font-weight: 500; }
 
@@ -369,9 +349,8 @@ ul, ol { padding: 0; list-style: none; }
     </div>
 
     <div class="gutter">
-      <p class="legend" aria-hidden="true"><span><i style="background:var(--basil)"></i>Eiweiß</span><span><i style="background:var(--kurkuma)"></i>Kohlenhydrate</span><span><i style="background:var(--sand)"></i>Fett</span></p>
       <div id="list" aria-live="polite"></div>
-      <p class="foot">Nährwerk · Rezepte von dir, sortiert von A bis Z</p>
+      <div class="foot"></div>
     </div>
   </main>
 
@@ -828,9 +807,9 @@ RECIPES.forEach(r => {
   r._share = kc.map(v => Math.round(v / sum * 100));
 });
 
-const KEY = "naehrwerk:v1";
+const KEY = "naehrwerk:v2";
 const store = (() => {
-  let data = { missing: {}, done: {} };
+  let data = { have: {}, done: {} };
   try { const raw = localStorage.getItem(KEY); if (raw) data = Object.assign(data, JSON.parse(raw)); } catch (e) {}
   return {
     data,
@@ -882,22 +861,21 @@ function renderHome() {
     const rs = hits.filter(r => r.kind === key).sort((a, b) => a.title.localeCompare(b.title, "de"));
     if (!rs.length) return "";
     return `<section class="section" aria-label="${label}">
-      <div class="section-h"><h2>${label}</h2><span>${rs.length} ${rs.length === 1 ? "Rezept" : "Rezepte"}</span></div>
+      <div class="section-h"><h2>${label}</h2></div>
       ${rs.map(rowHTML).join("")}
     </section>`;
   }).join("");
 }
 
 function rowHTML(r) {
-  const miss = (store.data.missing[r.id] || []).length;
   const meta = [`${r.approx ? "ca. " : ""}${fmt(r.n[0])} kcal`, r.yield].filter(Boolean).map(esc).join('<span aria-hidden="true">·</span>');
   return `<a class="row" href="#${r.id}">
     <div>
       <h3 class="row-title">${esc(r.title)}</h3>
-      <p class="row-meta">${meta}${miss ? `<span class="miss">${miss} ${miss === 1 ? "fehlt" : "fehlen"}</span>` : ""}</p>
+      <p class="row-meta">${meta}</p>
       ${macroBar(r)}
     </div>
-    <div class="row-pro"><b>${fmt(Math.round(r.n[1]))}</b><span>g Eiweiß</span></div>
+    <svg class="row-go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
   </a>`;
 }
 
@@ -918,10 +896,9 @@ let current = null;
 
 function renderDetail(r) {
   current = r;
-  const miss = new Set(store.data.missing[r.id] || []);
+  const have = new Set(store.data.have[r.id] || []);
   const done = new Set(store.data.done[r.id] || []);
   const unit = (v, u) => `${fmt(v)}<small>${u}</small>`;
-  const eyebrow = r.kind === "suess" ? "Süß · vegetarisch" : (r.meat ? "Herzhaft · mit Fleisch" : "Herzhaft · vegetarisch");
   const perLabel = (r.per || "Portionsgröße nicht angegeben") + (r.approx ? " · ca." : "");
 
   const groups = r.groups.map(([name, note, items], gi) => `
@@ -929,11 +906,10 @@ function renderDetail(r) {
       ${name || note ? `<div class="grp-h">${name ? `<h3>${esc(name)}</h3>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</div>` : ""}
       <ul>${items.map(([amt, nm, hint], ii) => {
         const k = `${gi}-${ii}`;
-        return `<li><button type="button" class="ing" data-k="${k}" aria-pressed="${miss.has(k)}">
+        return `<li><button type="button" class="ing" data-k="${k}" aria-pressed="${have.has(k)}">
           <span class="box">${ICON_CHECK}</span>
           <span class="amt">${esc(amt || "–")}</span>
           <span class="name">${esc(nm)}${hint ? `<small>${esc(hint)}</small>` : ""}</span>
-          <span class="flag">fehlt</span>
         </button></li>`;
       }).join("")}</ul>
     </div>`).join("");
@@ -956,7 +932,6 @@ function renderDetail(r) {
     </header>
     <div class="gutter view-in">
       <div class="d-head">
-        <p class="d-eyebrow">${eyebrow}</p>
         <h1 class="d-title" id="d-title">${esc(r.title)}</h1>
         ${r.yield ? `<p class="d-yield">Ergibt ${esc(r.yield)}</p>` : ""}
       </div>
@@ -964,24 +939,21 @@ function renderDetail(r) {
       <section class="nutri" aria-label="Nährwerte">
         <div class="nutri-grid">
           <div><b>${fmt(r.n[0])}</b><span>kcal</span></div>
-          <div class="hl"><b>${unit(r.n[1], "g")}</b><span>Eiweiß</span></div>
-          <div><b>${unit(r.n[2], "g")}</b><span>Kohlenh.</span></div>
-          <div><b>${unit(r.n[3], "g")}</b><span>Fett</span></div>
+          <div class="hl"><b>${unit(r.n[1], "g")}</b><span><i style="background:var(--basil)"></i>Eiweiß</span></div>
+          <div><b>${unit(r.n[2], "g")}</b><span><i style="background:var(--kurkuma)"></i>Kohlenh.</span></div>
+          <div><b>${unit(r.n[3], "g")}</b><span><i style="background:var(--sand)"></i>Fett</span></div>
         </div>
         ${macroBar(r)}
-        <div class="nutri-foot">
-          <span class="legend"><span><i style="background:var(--basil)"></i>${r._share[0]} %</span><span><i style="background:var(--kurkuma)"></i>${r._share[1]} %</span><span><i style="background:var(--sand)"></i>${r._share[2]} %</span></span>
-          <span>${esc(perLabel)}</span>
-        </div>
+        <p class="nutri-foot">${esc(perLabel)}</p>
       </section>
 
       <section class="block" aria-labelledby="h-ing">
-        <div class="block-h"><h2 id="h-ing">Zutaten</h2><p>Tippe an, was dir fehlt</p></div>
+        <div class="block-h"><h2 id="h-ing">Zutaten</h2></div>
         ${groups}
       </section>
 
       <section class="block" aria-labelledby="h-steps">
-        <div class="block-h"><h2 id="h-steps">Zubereitung</h2><p>${r.steps.length} Schritte</p></div>
+        <div class="block-h"><h2 id="h-steps">Zubereitung</h2></div>
         <ol>${steps}</ol>
         <div class="steps-foot" id="steps-foot"></div>
       </section>
@@ -999,22 +971,17 @@ function renderDetail(r) {
   updateStepsFoot();
 }
 
-function itemsFor(r, keys) {
-  const out = [];
-  r.groups.forEach(([, , items], gi) => items.forEach((it, ii) => { if (keys.has(`${gi}-${ii}`)) out.push(it); }));
-  return out;
-}
-
 function updateCart() {
-  const r = current, keys = new Set(store.data.missing[r.id] || []);
-  const bar = $("#cartbar");
-  bar.hidden = keys.size === 0;
-  $("#cart-count").innerHTML = `<b>${keys.size}</b> ${keys.size === 1 ? "fehlt" : "fehlen"}`;
+  const r = current, have = (store.data.have[r.id] || []).length;
+  const total = r.groups.reduce((a, g) => a + g[2].length, 0), missing = total - have;
+  $("#cartbar").hidden = have === 0;
+  $("#cart-count").innerHTML = missing ? `<b>${missing}</b> ${missing === 1 ? "fehlt" : "fehlen"}` : "Alles da";
+  $("#cart-copy").hidden = missing === 0;
 }
 
 function updateStepsFoot() {
   const n = (store.data.done[current.id] || []).length;
-  $("#steps-foot").innerHTML = n ? `<span>${n} von ${current.steps.length} erledigt</span><button type="button" class="text-btn" id="steps-reset" style="margin:0">Neu starten</button>` : "";
+  $("#steps-foot").innerHTML = n ? `<button type="button" class="text-btn" id="steps-reset" style="margin:0">Schritte zurücksetzen</button>` : "";
 }
 
 function toggleIn(bucket, id, key) {
@@ -1027,11 +994,11 @@ function toggleIn(bucket, id, key) {
 
 detail.addEventListener("click", e => {
   const ing = e.target.closest(".ing");
-  if (ing) { ing.setAttribute("aria-pressed", String(toggleIn("missing", current.id, ing.dataset.k))); updateCart(); return; }
+  if (ing) { ing.setAttribute("aria-pressed", String(toggleIn("have", current.id, ing.dataset.k))); updateCart(); return; }
   const step = e.target.closest(".step");
   if (step) { toggleStep(step); return; }
   if (e.target.closest("#cart-reset")) {
-    delete store.data.missing[current.id]; store.save();
+    delete store.data.have[current.id]; store.save();
     detail.querySelectorAll(".ing").forEach(b => b.setAttribute("aria-pressed", "false"));
     updateCart(); return;
   }
@@ -1055,7 +1022,9 @@ function toggleStep(step) {
 }
 
 function copyList() {
-  const items = itemsFor(current, new Set(store.data.missing[current.id] || []));
+  const have = new Set(store.data.have[current.id] || []);
+  const items = [];
+  current.groups.forEach(([, , list], gi) => list.forEach((it, ii) => { if (!have.has(`${gi}-${ii}`)) items.push(it); }));
   const text = `Einkaufsliste · ${current.title}\n` + items.map(([a, n]) => `– ${a ? a + " " : ""}${n}`).join("\n");
   const fallback = () => {
     const ta = document.createElement("textarea");
