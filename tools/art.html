@@ -2,7 +2,8 @@
 <html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head>
 <body><canvas id="c"></canvas>
 <script>
-const W = 1200, H = 1500;
+// Startbild (art.html) bzw. vereinfachtes App-Symbol (art.html#icon)
+const ICON = location.hash == '#icon', W = ICON ? 1024 : 1200, H = ICON ? 1024 : 1500;
 const c = document.getElementById('c'); c.width = W; c.height = H;
 const g = c.getContext('2d');
 let seed = 11;
@@ -80,11 +81,12 @@ function tortilla(x, y, r) {
   }
   g.restore();
 }
-tortilla(70, 250, 250);
-tortilla(200, 120, 245);
+if (ICON) tortilla(40, 150, 270); else { tortilla(70, 250, 250); tortilla(200, 120, 245); }
 
-/* ---------- main bowl: rice + butter chicken ---------- */
-const B = { x: 805, y: 500, r: 330 };
+/* ---------- main bowl: rice + butter chicken (k = Größe) ---------- */
+function bowl(x, y, k) {
+g.save(); g.translate(x, y); g.scale(k, k);
+const B = { x: 0, y: 0, r: 330 };
 shadow(true, 60, 26, 34, 0.5);
 circle(B.x, B.y, B.r); g.fillStyle = '#e8e3d7'; g.fill();
 shadow(false);
@@ -165,6 +167,10 @@ g.restore();
 // rim highlight
 g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 4;
 g.beginPath(); g.arc(B.x, B.y, B.r - 6, Math.PI * 0.95, Math.PI * 1.55); g.stroke();
+g.restore();
+}
+bowl(...(ICON ? [585, 555, .95] : [805, 500, 1]));
+if (!ICON) {
 
 /* ---------- yogurt bowl ---------- */
 const Y = { x: 300, y: 660, r: 138 };
@@ -212,7 +218,10 @@ heap(690, 965, 46, '#f0be44', '#c98c16');   // Kurkuma
 heap(470, 1010, 40, '#9a6438', '#5e3a1f');  // Garam Masala
 
 /* ---------- lemon half (right edge) ---------- */
-const L = { x: 1100, y: 905, r: 104 };
+lemon(1100, 905, 104);
+}
+function lemon(x, y, r) {
+const L = { x, y, r };
 shadow(true, 30, 12, 18, 0.45);
 circle(L.x, L.y, L.r); g.fillStyle = '#e4b928'; g.fill();
 shadow(false);
@@ -226,6 +235,7 @@ for (let i = 0; i < 10; i++) {
   g.beginPath(); g.moveTo(L.x + Math.cos(a) * 12, L.y + Math.sin(a) * 12); g.lineTo(L.x + Math.cos(a) * (L.r - 16), L.y + Math.sin(a) * (L.r - 16)); g.stroke();
 }
 circle(L.x, L.y, 11); g.fillStyle = '#f6eecb'; g.fill();
+}
 
 /* ---------- chili ---------- */
 function chili(x0, y0, x1, y1, cx, cy) {
@@ -247,6 +257,8 @@ function chili(x0, y0, x1, y1, cx, cy) {
   g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 - 26, y0 - 6, x0 - 40, y0 - 30); g.stroke();
   g.fillStyle = '#4b7034'; circle(x0 + 2, y0, 15); g.fill();
 }
+if (ICON) { chili(150, 830, 360, 950, 200, 960); lemon(875, 865, 92); sprig(400, 90, .3, 150, '#5a9446'); }
+else {
 chili(110, 880, 300, 1000, 160, 1000);
 
 /* ---------- garlic cloves ---------- */
@@ -276,21 +288,26 @@ for (let i = 0; i < 5; i++) {
   g.strokeStyle = '#86b85a'; g.lineWidth = 4.5;
   g.beginPath(); g.ellipse(x, y, r, r * .85, R(0, TAU), 0, TAU); g.stroke();
 }
+}
 
 /* ---------- light + calm lower area ---------- */
 const lg = g.createRadialGradient(240, 160, 40, 240, 160, 1200);
 lg.addColorStop(0, 'rgba(255,240,205,.10)'); lg.addColorStop(1, 'rgba(255,240,205,0)');
 g.fillStyle = lg; g.fillRect(0, 0, W, H);
+if (!ICON) {
 const vg = g.createLinearGradient(0, 960, 0, H);
 vg.addColorStop(0, 'rgba(14,24,18,0)'); vg.addColorStop(1, 'rgba(14,24,18,.82)');
 g.fillStyle = vg; g.fillRect(0, 0, W, H);
+}
 
 /* ---------- grain ---------- */
 const img = g.getImageData(0, 0, W, H), d = img.data;
 for (let i = 0; i < d.length; i += 4) {
-  const n = (rnd() - 0.5) * 22;
+  const n = (rnd() - 0.5) * (ICON ? 10 : 22);
   d[i] += n; d[i + 1] += n; d[i + 2] += n;
 }
 g.putImageData(img, 0, 0);
-window.__done = true;
+// verkleinerte Fassungen (halbierend, damit es scharf bleibt)
+const size = n => { let src = c; while (src.width / 2 >= n) { const t = document.createElement('canvas'); t.width = t.height = src.width / 2; t.getContext('2d').drawImage(src, 0, 0, t.width, t.height); src = t; } const o = document.createElement('canvas'); o.width = o.height = n; o.getContext('2d').drawImage(src, 0, 0, n, n); return o.toDataURL('image/png'); };
+window.__out = ICON ? { 'icon-512.png': size(512), 'icon-192.png': size(192), 'apple-touch-icon.png': size(180), 'favicon-32.png': size(32) } : { 'start.jpg': c.toDataURL('image/jpeg', 0.84) };
 </script></body></html>

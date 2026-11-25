@@ -1,14 +1,13 @@
-const { chromium } = require('playwright');
-const fs = require('fs');
-const path = require('path');
+// Zeichnet Startbild (start.jpg) und App-Symbole (site/*.png): node tools/render.js
+const { chromium } = require('playwright'), fs = require('fs'), path = require('path');
+const root = path.join(__dirname, '..');
 (async () => {
-  const [src, out] = process.argv.slice(2);
-  const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 1200, height: 1500 } });
-  await p.goto('file://' + path.resolve(src));
-  await p.waitForFunction(() => window.__done === true);
-  const url = await p.evaluate(() => document.getElementById('c').toDataURL('image/jpeg', 0.84));
-  fs.writeFileSync(out, Buffer.from(url.split(',')[1], 'base64'));
+  const b = await chromium.launch(), p = await b.newPage();
+  for (const [hash, dir] of [['', root], ['#icon', path.join(root, 'site')]]) {
+    await p.goto('file://' + path.join(__dirname, 'art.html') + hash);
+    await p.reload(); // Hash-Wechsel allein lädt die Seite nicht neu
+    const out = await (await p.waitForFunction(() => window.__out)).jsonValue();
+    for (const [name, url] of Object.entries(out)) fs.writeFileSync(path.join(dir, name), Buffer.from(url.split(',')[1], 'base64'));
+  }
   await b.close();
-  console.log('written', out, fs.statSync(out).size);
 })();

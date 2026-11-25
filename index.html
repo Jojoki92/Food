@@ -1,1662 +1,359 @@
 <title>Meal Prep</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#16251c">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist:wght@400..650&family=Geist+Mono:wght@400..600&display=swap">
 <style>
-/* Layout: one phone-width column. Illustrated start image on top, a sticky search + filter bar
-   that overlaps its lower edge, then a hairline-ruled recipe index grouped Herzhaft / Süß.
-   Opening a recipe swaps the index for a detail view: macros, tappable ingredient list, steps. */
-:root {
-  --bg: #eef1eb;
-  --raise: #f8faf6;
-  --field: #ffffff;
-  --ink: #16201a;
-  --muted: #5b675e;
-  --line: #d6ddd3;
-  --line-strong: #aab5ac;
-  --basil: #2f6b48;
-  --kurkuma: #d4961c;
-  --paprika: #c0412a;
-  --paprika-soft: #f5e3dc;
-  --sand: #b9a27a;
-  --on-img: #f4f1e8;
+/* Farben: light-dark(hell, dunkel) folgt dem Hell-/Dunkelmodus des Geräts */
+:root { color-scheme: light dark;
+  --bg: light-dark(#eef1eb, #0f1511); --raise: light-dark(#f8faf6, #172019); --field: light-dark(#fff, #172019);
+  --ink: light-dark(#16201a, #e5eae3); --muted: light-dark(#5b675e, #93a096); --line: light-dark(#d6ddd3, #26302a); --line2: light-dark(#aab5ac, #46524a);
+  --basil: light-dark(#2f6b48, #6fb18a); --kurkuma: light-dark(#d4961c, #e6ad3f); --sand: light-dark(#b9a27a, #a8946e); --red: light-dark(#c0412a, #e46b4d);
+  --fd: "Bricolage Grotesque", system-ui, sans-serif; --fb: Geist, system-ui, -apple-system, sans-serif; --fm: "Geist Mono", ui-monospace, Menlo, monospace; --ease: cubic-bezier(.2, .7, .2, 1) }
+:root[data-theme=light] { color-scheme: light } :root[data-theme=dark] { color-scheme: dark }
+* { box-sizing: border-box } [hidden] { display: none !important }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 var(--fb); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg) }
+h1, h2, h3, p, ul, ol { margin: 0 } ul, ol { padding: 0; list-style: none } button { font: inherit; color: inherit; cursor: pointer }
+:focus-visible { outline: 2px solid var(--basil); outline-offset: 2px }
+small { display: block; font-size: 13.5px; color: var(--muted) }
+.app { max-width: 600px; margin: auto }
+.g { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none }
+.btn, .line { height: 46px; padding: 0 16px; border-radius: 13px; font-weight: 600; border: 1px solid var(--line2); background: none }
+.btn { border: 0; background: var(--ink); color: var(--bg) } .btn:disabled { opacity: .3 }
+.icon { display: grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 12px; background: none; color: var(--muted) }
 
-  --f-display: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-body: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --f-num: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+/* Start */
+.hero { position: relative; height: clamp(360px, 58svh, 480px); overflow: hidden; background: #1c2e22; color: #f4f1e8 }
+.hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top }
+.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, #0c150ff0, #0c150f8c 30%, #0c150f00 56%) }
+.hero > div { position: absolute; inset: auto 0 0; z-index: 1; padding-bottom: 56px }
+.hero p:first-child { font: 500 12px var(--fm); letter-spacing: .16em; text-transform: uppercase; opacity: .8 }
+.hero h1 { font: 800 clamp(50px, 16vw, 84px)/.88 var(--fd); letter-spacing: -.04em; margin: 12px 0 14px -2px } .hero h1 span { color: #f0b748 }
+.hero p:last-child { font-size: 15px; opacity: .86 }
+.up { position: absolute; z-index: 2; top: 14px; right: max(16px, env(safe-area-inset-right, 0px)); display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 15px 0 11px; border-radius: 99px; border: 1px solid #fff4; background: #0c150f6b; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); color: #f4f1e8; font-size: 14px; font-weight: 500 }
+#tb { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; margin-top: -38px; padding-block: 10px 12px } #tb.stuck { background: var(--bg); box-shadow: 0 1px 0 var(--line) }
+form { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 6px 0 16px; background: var(--field); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 28px -16px #0a140e73; color: var(--muted) }
+form:focus-within { border-color: var(--basil) }
+#q { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--ink); font: 16px var(--fb) } #q::-webkit-search-cancel-button { display: none }
+#chips { display: flex; gap: 6px; margin-top: 12px; overflow-x: auto; scrollbar-width: none }
+.chip { flex: none; height: 36px; padding: 0 11px; border: 1px solid var(--line2); border-radius: 99px; background: none; font-size: 13.5px; font-weight: 500 }
+.chip span { margin-left: 6px; font: 12px var(--fm); opacity: .6 } .chip[aria-pressed=true] { background: var(--ink); border-color: var(--ink); color: var(--bg) }
+.sec, .block { padding: 26px 0 10px; border-bottom: 1.5px solid var(--ink); font: 700 24px/1 var(--fd); letter-spacing: -.02em }
+.row { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none }
+.row > div { flex: 1; min-width: 0 } .row h3 { font: 650 19px/1.2 var(--fd); letter-spacing: -.01em } .row:hover h3 { color: var(--basil) } .row > .i { color: var(--line2) }
+.row p { margin: 6px 0 10px; font-size: 13.5px; color: var(--muted) }
+.bar { display: flex; gap: 2px; height: 4px; max-width: 190px; border-radius: 3px; overflow: hidden }
+.bar i:nth-child(1), .nutri div:nth-child(2) i { background: var(--basil) } .bar i:nth-child(2), .nutri div:nth-child(3) i { background: var(--kurkuma) } .bar i:nth-child(3), .nutri div:nth-child(4) i { background: var(--sand) }
+.empty { padding-block: 48px; font: 650 22px/1.3 var(--fd) } .empty button { display: block; margin-top: 16px; font: 600 15px var(--fb) }
 
-  --col: 600px;
-  --radius: 16px;
-  --ease: cubic-bezier(.2, .7, .2, 1);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f1511; --raise: #172019; --field: #172019; --ink: #e5eae3; --muted: #93a096;
-    --line: #26302a; --line-strong: #46524a; --basil: #6fb18a; --kurkuma: #e6ad3f;
-    --paprika: #e46b4d; --paprika-soft: #36201a; --sand: #a8946e; --on-img: #f4f1e8;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0f1511; --raise: #172019; --field: #172019; --ink: #e5eae3; --muted: #93a096;
-  --line: #26302a; --line-strong: #46524a; --basil: #6fb18a; --kurkuma: #e6ad3f;
-  --paprika: #e46b4d; --paprika-soft: #36201a; --sand: #a8946e; --on-img: #f4f1e8;
-  color-scheme: dark;
-}
+/* Rezept */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 8px; height: 56px; background: var(--bg) } .top.scrolled { box-shadow: 0 1px 0 var(--line) }
+.top a { display: flex; align-items: center; gap: 6px; height: 40px; margin-left: -6px; padding: 0 12px 0 6px; color: inherit; text-decoration: none; font-weight: 500 }
+.top span { font: 650 15px var(--fd); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .2s } .top.scrolled span { opacity: 1 }
+.in { animation: in .3s var(--ease) } @keyframes in { from { opacity: 0; transform: translateY(10px) } }
+.title { margin-top: 4px; font: 750 clamp(32px, 9vw, 44px)/1.02 var(--fd); letter-spacing: -.03em; text-wrap: balance } .yield { margin-top: 10px; color: var(--muted) }
+.nutri { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 22px; padding: 18px; background: var(--raise); border: 1px solid var(--line); border-radius: 20px }
+.nutri b { display: block; font: 500 22px/1.1 var(--fm); letter-spacing: -.03em; white-space: nowrap } .nutri b small { display: inline; margin-left: 2px; font-size: 13px }
+.nutri span { font-size: 12.5px; color: var(--muted) } .nutri div:nth-child(2) b { color: var(--basil) }
+.nutri span i { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 2px }
+.nutri .bar, .nutri p { grid-column: 1 / -1; max-width: none } .nutri .bar { height: 6px; margin-top: 8px } .nutri p { font: 12px var(--fm); color: var(--muted); text-align: right }
+.grp { padding: 18px 0 6px; font: 600 12px var(--fm); letter-spacing: .12em; text-transform: uppercase } .grp small { display: inline; margin-left: 8px; font: 13px var(--fb); letter-spacing: 0; text-transform: none }
+.ing { display: grid; grid-template-columns: 24px 4.9rem 1fr; gap: 12px; width: calc(100% + 14px); margin: 0 -8px 0 -6px; padding: 12px 8px 12px 6px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left }
+.box, .num { display: grid; place-items: center; border: 1.5px solid var(--line2); transition: .15s } .box .i, .num .i { width: 14px; height: 14px; stroke-width: 3 }
+.box { width: 22px; height: 22px; border-radius: 7px; color: transparent } .amt { font: 500 14px/1.5 var(--fm); color: var(--muted) }
+[aria-pressed=true] > .box, [aria-pressed=true] > .num { background: var(--basil); border-color: var(--basil); color: #fff } .ing[aria-pressed=true] > span:not(.box) { opacity: .42 }
+.step { display: grid; grid-template-columns: 32px 1fr; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 16.5px; line-height: 1.6 }
+.num { width: 30px; height: 30px; border-radius: 50%; border-color: var(--ink); font: 500 13px var(--fm) } .num .i, [aria-pressed=true] .num span { display: none } [aria-pressed=true] .num .i { display: block }
+.step[aria-pressed=true] > div { opacity: .45 } .step li { position: relative; padding-left: 16px } .step li::before { content: ""; position: absolute; left: 2px; top: .75em; width: 5px; height: 5px; border-radius: 50%; background: var(--muted) }
+.end { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 28px 140px } .end a { color: inherit; font-weight: 500 } .danger { color: var(--red) }
+.cart { position: fixed; inset: auto 0 0; z-index: 25; padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); pointer-events: none }
+.cart > div { display: flex; align-items: center; gap: 6px; max-width: 568px; margin: auto; padding: 8px 8px 8px 18px; border-radius: 18px; background: var(--ink); color: var(--bg); box-shadow: 0 14px 36px -14px #0008; pointer-events: auto }
+.cart p { flex: 1; font-weight: 500 } .cart button { height: 40px; padding: 0 14px; border: 0; border-radius: 12px; background: none; font-size: 14px; font-weight: 600 } .cart button:last-child { background: var(--bg); color: var(--ink) }
+#toast { position: fixed; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 60; padding: 10px 16px; border-radius: 12px; background: var(--basil); color: #fff; font-size: 14px; font-weight: 500; opacity: 0; transform: translate(-50%, 8px); transition: .2s; pointer-events: none } #toast.show { opacity: 1; transform: translate(-50%, 0) }
 
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font: 400 16px/1.5 var(--f-body);
-  -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-}
-body::before {
-  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
-  z-index: 30; background: var(--bg);
-}
-button { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--basil); outline-offset: 2px; border-radius: 8px; }
-h1, h2, h3, p, ul, ol { margin: 0; }
-ul, ol { padding: 0; list-style: none; }
-
-.app { max-width: var(--col); margin: 0 auto; min-height: 100%; }
-.gutter {
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-}
-
-/* ---------- Start ---------- */
-.hero {
-  position: relative;
-  height: clamp(360px, 58svh, 480px);
-  overflow: hidden;
-  background: #1c2e22;
-}
-.hero img {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; object-position: 50% 0%;
-  max-width: 100%;
-}
-.hero::after {
-  content: ""; position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(12, 21, 15, .94) 0%, rgba(12, 21, 15, .55) 30%, rgba(12, 21, 15, 0) 56%);
-}
-.hero-text {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
-  padding-bottom: 56px;
-  color: var(--on-img);
-}
-.hero-eyebrow {
-  font: 500 12px/1 var(--f-num); letter-spacing: .16em; text-transform: uppercase; opacity: .78;
-}
-.wordmark {
-  font: 800 clamp(50px, 16vw, 84px)/.88 var(--f-display);
-  letter-spacing: -.04em;
-  margin: 12px 0 14px -2px;
-}
-.wordmark span { color: #f0b748; }
-.tagline { font-size: 15px; line-height: 1.45; max-width: 30ch; opacity: .86; text-wrap: balance; }
-
-.toolbar {
-  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
-  margin-top: -38px;
-  padding-top: 10px; padding-bottom: 12px;
-  transition: background-color .2s, box-shadow .2s;
-}
-.toolbar.stuck { background: var(--bg); box-shadow: 0 1px 0 var(--line); }
-.search {
-  display: flex; align-items: center; gap: 10px;
-  height: 54px; padding: 0 6px 0 16px;
-  background: var(--field);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 1px 2px rgba(10, 20, 14, .06), 0 12px 28px -16px rgba(10, 20, 14, .45);
-  transition: border-color .15s, box-shadow .15s;
-}
-.search:focus-within { border-color: var(--basil); box-shadow: 0 0 0 3px color-mix(in srgb, var(--basil) 22%, transparent), 0 12px 28px -16px rgba(10, 20, 14, .45); }
-.search svg { flex: none; color: var(--muted); }
-.search input {
-  flex: 1; min-width: 0; height: 100%;
-  border: 0; outline: 0; background: transparent; color: var(--ink);
-  font: 400 16px var(--f-body);
-}
-.search input::placeholder { color: var(--muted); }
-.search input::-webkit-search-cancel-button { display: none; }
-.icon-btn {
-  flex: none; display: grid; place-items: center; width: 42px; height: 42px;
-  border: 0; background: transparent; border-radius: 12px; cursor: pointer; color: var(--muted);
-}
-.icon-btn:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
-
-.chips { display: flex; gap: 6px; margin-top: 12px; overflow-x: auto; scrollbar-width: none; }
-.chips::-webkit-scrollbar { display: none; }
-.chip {
-  flex: none; display: inline-flex; align-items: center; gap: 6px;
-  height: 36px; padding: 0 11px;
-  border: 1px solid var(--line-strong); border-radius: 999px;
-  background: transparent; cursor: pointer;
-  font: 500 13.5px var(--f-body);
-  transition: background-color .15s, color .15s, border-color .15s;
-}
-.chip .n { font: 500 12px var(--f-num); color: var(--muted); font-variant-numeric: tabular-nums; }
-.chip:hover { border-color: var(--ink); }
-.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
-.chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--bg) 70%, transparent); }
-
-.section { padding-top: 22px; }
-.section-h {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  padding-bottom: 10px; border-bottom: 1.5px solid var(--ink);
-}
-.section-h h2 { font: 700 24px/1 var(--f-display); letter-spacing: -.02em; }
-.section-h span { font: 500 13px var(--f-num); color: var(--muted); }
-
-.row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center;
-  padding: 16px 0 17px;
-  border-bottom: 1px solid var(--line);
-  color: inherit; text-decoration: none;
-  transition: background-color .15s;
-}
-.row:active { background: color-mix(in srgb, var(--ink) 4%, transparent); }
-.row-title {
-  font: 650 19px/1.2 var(--f-display); letter-spacing: -.012em; text-wrap: balance;
-  transition: color .15s;
-}
-.row:hover .row-title { color: var(--basil); }
-.row-meta {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
-  margin: 6px 0 10px; font-size: 13.5px; color: var(--muted);
-}
-.macro { display: flex; gap: 2px; height: 4px; max-width: 190px; border-radius: 3px; overflow: hidden; }
-.macro i:nth-child(1) { background: var(--basil); }
-.macro i:nth-child(2) { background: var(--kurkuma); }
-.macro i:nth-child(3) { background: var(--sand); }
-.row-go { color: var(--line-strong); transition: color .15s, transform .15s; }
-.row:hover .row-go { color: var(--ink); transform: translateX(2px); }
-
-.empty { padding: 48px 0 24px; text-align: left; }
-.empty p { font: 650 22px/1.25 var(--f-display); letter-spacing: -.01em; max-width: 22ch; }
-.empty small { display: block; margin-top: 8px; color: var(--muted); font-size: 15px; }
-.text-btn {
-  margin-top: 16px; height: 40px; padding: 0 16px; border-radius: 12px; cursor: pointer;
-  border: 1px solid var(--line-strong); background: transparent; font-weight: 500;
-}
-.foot { padding-block: 40px 48px; font: 400 12px var(--f-num); color: var(--muted); letter-spacing: .04em; }
-
-/* ---------- Rezept ---------- */
-.topbar {
-  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
-  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px;
-  height: 56px; background: var(--bg);
-  box-shadow: 0 1px 0 transparent; transition: box-shadow .2s;
-}
-.topbar.scrolled { box-shadow: 0 1px 0 var(--line); }
-.back {
-  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px 0 6px; margin-left: -6px;
-  border-radius: 12px; color: var(--ink); text-decoration: none; font-weight: 500; font-size: 15px;
-}
-.back:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
-.topbar-title {
-  font: 650 15px/1.2 var(--f-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  opacity: 0; transform: translateY(4px); transition: opacity .2s, transform .2s;
-}
-.topbar.scrolled .topbar-title { opacity: 1; transform: none; }
-
-.view-in { animation: viewIn .32s var(--ease); }
-@keyframes viewIn { from { opacity: 0; transform: translateY(10px); } }
-
-.d-head { padding-top: 12px; }
-.d-title { margin-top: 4px; font: 750 clamp(32px, 9vw, 44px)/1.02 var(--f-display); letter-spacing: -.03em; text-wrap: balance; }
-.d-yield { margin-top: 10px; color: var(--muted); font-size: 15px; }
-
-.nutri {
-  margin-top: 22px; padding: 18px 18px 16px;
-  background: var(--raise); border: 1px solid var(--line); border-radius: 20px;
-}
-.nutri-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.nutri-grid div { min-width: 0; }
-.nutri-grid b { display: block; font: 500 22px/1.1 var(--f-num); letter-spacing: -.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.nutri-grid b small { font-size: 13px; letter-spacing: 0; margin-left: 2px; color: var(--muted); }
-.nutri-grid span { display: block; margin-top: 4px; font-size: 12.5px; color: var(--muted); }
-.nutri-grid .hl b { color: var(--basil); }
-.nutri-grid i { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 5px; vertical-align: 1px; }
-.nutri .macro { max-width: none; height: 6px; margin-top: 16px; }
-.nutri-foot { margin-top: 10px; font: 400 12px var(--f-num); color: var(--muted); text-align: right; }
-
-.block { padding-top: 34px; }
-.block-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1.5px solid var(--ink); }
-.block-h h2 { font: 700 24px/1 var(--f-display); letter-spacing: -.02em; }
-.block-h p { font-size: 13px; color: var(--muted); text-align: right; }
-
-.grp + .grp { margin-top: 8px; }
-.grp-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 18px 0 6px; }
-.grp-h h3 { font: 600 12px/1 var(--f-num); letter-spacing: .12em; text-transform: uppercase; }
-.grp-h small { font-size: 13px; color: var(--muted); }
-
-.ing {
-  display: grid; grid-template-columns: 24px 4.9rem minmax(0, 1fr); gap: 12px; align-items: start;
-  padding: 12px 8px 12px 6px; margin-left: -6px; margin-right: -8px;
-  width: calc(100% + 14px);
-  border: 0; border-bottom: 1px solid var(--line); background: transparent; border-radius: 0;
-  text-align: left; cursor: pointer;
-  transition: background-color .15s;
-}
-.ing:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
-.box {
-  width: 22px; height: 22px; margin-top: 1px; border-radius: 7px; border: 1.5px solid var(--line-strong);
-  display: grid; place-items: center; color: transparent;
-  transition: background-color .15s, border-color .15s, color .15s, transform .15s;
-}
-.amt { font: 500 14px/1.5 var(--f-num); color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
-.name { font-size: 16px; line-height: 1.45; }
-.name small { display: block; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
-.amt, .name { transition: opacity .15s; }
-.ing[aria-pressed="true"] .box { background: var(--basil); border-color: var(--basil); color: #fff; }
-.ing[aria-pressed="true"] .amt, .ing[aria-pressed="true"] .name { opacity: .42; }
-
-.step {
-  display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px;
-  padding: 16px 0; border-bottom: 1px solid var(--line); cursor: pointer;
-}
-.step:focus-visible { border-radius: 10px; }
-.num {
-  width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--ink);
-  display: grid; place-items: center; font: 500 13px var(--f-num); font-variant-numeric: tabular-nums;
-  transition: background-color .15s, border-color .15s, color .15s;
-}
-.num svg { display: none; }
-.step-text { font-size: 16.5px; line-height: 1.6; max-width: 62ch; padding-top: 2px; transition: opacity .2s; }
-.step-text ul { margin-top: 8px; display: grid; gap: 4px; }
-.step-text li { position: relative; padding-left: 16px; }
-.step-text li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }
-.step[aria-pressed="true"] .num { background: var(--basil); border-color: var(--basil); color: #fff; }
-.step[aria-pressed="true"] .num span { display: none; }
-.step[aria-pressed="true"] .num svg { display: block; }
-.step[aria-pressed="true"] .step-text { opacity: .45; }
-.steps-foot { padding-top: 20px; }
-.steps-foot:empty { display: none; }
-.d-end { padding-block: 36px 140px; }
-.d-end a { color: var(--ink); font-weight: 500; }
-
-.cartbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
-  padding-top: 12px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  pointer-events: none;
-}
-.cartbar-in {
-  pointer-events: auto;
-  max-width: calc(var(--col) - 32px); margin: 0 auto;
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 8px 8px 18px; border-radius: 18px;
-  background: var(--ink); color: var(--bg);
-  box-shadow: 0 14px 36px -14px rgba(0, 0, 0, .55);
-  animation: barIn .28s var(--ease);
-}
-@keyframes barIn { from { transform: translateY(16px); opacity: 0; } }
-.cartbar-count { flex: 1; min-width: 0; font-weight: 500; font-size: 15px; }
-.cartbar-count b { font-family: var(--f-num); font-weight: 600; }
-.cartbar button { height: 40px; padding: 0 14px; border: 0; border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 14px; }
-.btn-ghost { background: transparent; color: inherit; opacity: .72; }
-.btn-ghost:hover { opacity: 1; }
-.btn-solid { background: var(--bg); color: var(--ink); }
-
-.toast {
-  position: fixed; left: 50%; z-index: 40;
-  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
-  transform: translate(-50%, 8px); opacity: 0; pointer-events: none;
-  padding: 10px 16px; border-radius: 12px; background: var(--basil); color: #fff;
-  font-weight: 500; font-size: 14px; white-space: nowrap;
-  transition: opacity .2s, transform .2s;
-}
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
-
-/* ---------- Hochladen ---------- */
-.upload-btn {
-  position: absolute; z-index: 2;
-  top: 14px; right: max(16px, env(safe-area-inset-right, 0px));
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 40px; padding: 0 15px 0 11px; border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, .26); background: rgba(12, 21, 15, .42);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  color: var(--on-img); font: 500 14px var(--f-body); cursor: pointer;
-  transition: background-color .15s;
-}
-.upload-btn:hover { background: rgba(12, 21, 15, .62); }
-
-.sheet { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
-.sheet-bg { position: absolute; inset: 0; background: rgba(8, 14, 10, .52); animation: fadeIn .2s; }
-@keyframes fadeIn { from { opacity: 0; } }
-.sheet-panel {
-  position: relative; width: 100%; max-width: var(--col);
-  max-height: calc(100% - env(safe-area-inset-top, 0px) - 16px);
-  display: flex; flex-direction: column;
-  background: var(--bg); border-radius: 24px 24px 0 0;
-  box-shadow: 0 -24px 60px -24px rgba(0, 0, 0, .45);
-  animation: sheetIn .34s var(--ease);
-}
-@keyframes sheetIn { from { transform: translateY(40px); opacity: 0; } }
-.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; padding-bottom: 10px; }
-.sheet-head h2 { font: 700 24px/1.1 var(--f-display); letter-spacing: -.02em; }
-.sheet-body { overflow-y: auto; overscroll-behavior: contain; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
-.up-text {
-  display: block; width: 100%; min-height: 36svh; resize: vertical;
-  padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px;
-  background: var(--field); color: var(--ink); font: 400 15px/1.5 var(--f-body);
-}
-.up-text::placeholder { color: var(--muted); }
-.up-text:focus { outline: none; border-color: var(--basil); box-shadow: 0 0 0 3px color-mix(in srgb, var(--basil) 22%, transparent); }
-.up-text:disabled { opacity: .6; }
-.file-chip {
-  display: flex; align-items: center; gap: 10px; margin-top: 10px;
-  padding: 6px 6px 6px 6px; border: 1px solid var(--line); border-radius: 14px; background: var(--field);
-}
-.file-chip img { width: 44px; height: 44px; object-fit: cover; border-radius: 9px; max-width: 100%; }
-.file-chip span { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.up-actions { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
-.btn {
-  height: 48px; padding: 0 18px; border-radius: 14px; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  font: 600 15px var(--f-body); white-space: nowrap;
-}
-.btn-primary { flex: 1; border: 0; background: var(--ink); color: var(--bg); }
-.btn-primary:disabled { opacity: .32; cursor: default; }
-.btn-line { border: 1px solid var(--line-strong); background: transparent; color: var(--ink); }
-.btn-line[aria-disabled="true"] { opacity: .4; pointer-events: none; }
-.up-msg { margin-top: 12px; font-size: 14.5px; line-height: 1.45; color: var(--muted); }
-.up-msg.err { color: var(--paprika); }
-.up-msg:empty { display: none; }
-.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.pv { border-top: 1.5px solid var(--ink); }
-.pv-item { display: grid; gap: 10px; padding: 14px 0 16px; border-bottom: 1px solid var(--line); }
-.pv-top { display: flex; gap: 6px; align-items: center; }
-.pv-title {
-  flex: 1; min-width: 0; padding: 4px 0; border: 0; border-bottom: 1px solid transparent; border-radius: 0;
-  background: transparent; color: var(--ink); font: 650 19px/1.25 var(--f-display); letter-spacing: -.01em;
-}
-.pv-title:hover { border-bottom-color: var(--line); }
-.pv-title:focus { outline: none; border-bottom-color: var(--basil); }
-.pv-meta { font-size: 13.5px; color: var(--muted); }
-.pv-warn { font-size: 13.5px; color: var(--paprika); }
-.segs { display: flex; flex-wrap: wrap; gap: 8px; }
-.seg { display: inline-flex; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--ink) 7%, transparent); }
-.seg button {
-  height: 32px; padding: 0 12px; border: 0; border-radius: 9px; cursor: pointer;
-  background: transparent; color: var(--muted); font: 500 13.5px var(--f-body);
-}
-.seg button[aria-pressed="true"] { background: var(--field); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .14); }
-
-.d-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-.del-area { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.danger { color: var(--paprika); border-color: color-mix(in srgb, var(--paprika) 45%, transparent); background: transparent; }
-.danger-solid { background: var(--paprika); border-color: var(--paprika); color: #fff; }
-.del-area .text-btn { margin: 0; }
-
-@media (min-width: 700px) {
-  .upload-btn { top: 18px; right: 20px; }
-  .sheet { align-items: center; }
-  .sheet-panel { border-radius: 24px; max-height: min(86vh, 860px); }
-
-  .app { padding-top: 24px; }
-  .hero { border-radius: 28px; }
-  .hero-text { padding-left: 32px; padding-right: 32px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-}
+/* Hochladen */
+#sheet { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center } .shade { position: absolute; inset: 0; background: #080e0a85 }
+.panel { position: relative; width: 100%; max-width: 600px; max-height: calc(100% - env(safe-area-inset-top, 0px) - 16px); overflow-y: auto; padding-block: 16px calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--bg); border-radius: 24px 24px 0 0; animation: in .3s var(--ease) }
+.panel h2 { flex: 1; font: 700 24px var(--fd) } .panel > div:first-child { display: flex; align-items: center; margin-bottom: 10px }
+textarea { display: block; width: 100%; min-height: 36svh; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--field); color: var(--ink); font: 15px/1.5 var(--fb) } textarea:focus { outline: 0; border-color: var(--basil) }
+.actions { display: flex; gap: 10px; margin-top: 12px } .actions .btn { flex: 1 } #msg { margin-top: 12px; color: var(--red) }
+.pv { display: grid; gap: 10px; padding: 14px 0 16px; border-bottom: 1px solid var(--line) } .pv > div { display: flex; gap: 8px; flex-wrap: wrap }
+.pv input { flex: 1; min-width: 0; padding: 4px 0; border: 0; border-bottom: 1px solid transparent; background: none; color: inherit; font: 650 19px var(--fd) } .pv input:focus { outline: 0; border-color: var(--basil) }
+.seg { display: flex; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--ink) 7%, transparent) }
+.seg button { height: 32px; padding: 0 12px; border: 0; border-radius: 9px; background: none; color: var(--muted); font-size: 13.5px; font-weight: 500 } .seg [aria-pressed=true] { background: var(--field); color: var(--ink); box-shadow: 0 1px 2px #0002 }
+.pv p { font-size: 13.5px; color: var(--muted) } .pv .danger { color: var(--red) }
+@media (min-width: 700px) { .app { padding-top: 24px } .hero { border-radius: 28px } .hero > div { padding-inline: 32px } #sheet { align-items: center } .panel { border-radius: 24px } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
 </style>
+
+<svg hidden>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+</svg>
 
 <div class="app">
   <main id="home">
     <header class="hero">
-      <img src="start.jpg" alt="Gezeichnete Draufsicht: Schüssel mit Reis und Butter Chicken, Tortillas, Joghurt, Gewürze, Chili und Zitrone auf dunklem Stein" width="1200" height="1500">
-      <button type="button" class="upload-btn" id="open-upload" hidden>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        Hochladen
-      </button>
-      <div class="hero-text gutter">
-        <p class="hero-eyebrow" id="hero-count">Rezeptsammlung</p>
-        <h1 class="wordmark">Meal Prep<span>.</span></h1>
-        <p class="tagline">Eiweißreich kochen, ohne lange zu suchen.</p>
-      </div>
+      <img src="start.jpg" alt="Gezeichnet von oben: Reis mit Butter Chicken, Tortillas, Joghurt, Gewürze und Zitrone" width="1200" height="1500">
+      <button class="up" data-act="upload"><svg class="i"><use href="#plus"/></svg>Hochladen</button>
+      <div class="g"><p id="count"></p><h1>Meal Prep<span>.</span></h1><p>Eiweißreich kochen, ohne lange zu suchen.</p></div>
     </header>
-
-    <div class="toolbar gutter" id="toolbar">
-      <form class="search" role="search" id="search-form">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="q" type="search" placeholder="Rezept oder Zutat suchen" autocomplete="off" enterkeyhint="search" aria-label="Rezept oder Zutat suchen">
-        <button class="icon-btn" type="button" id="clear" aria-label="Suche leeren" hidden>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-        </button>
+    <div id="tb" class="g">
+      <form id="sf" role="search"><svg class="i"><use href="#search"/></svg>
+        <input id="q" type="search" placeholder="Rezept oder Zutat suchen" aria-label="Rezept oder Zutat suchen" autocomplete="off" enterkeyhint="search">
+        <button type="button" class="icon" data-act="clear" aria-label="Suche leeren" hidden><svg class="i"><use href="#x"/></svg></button>
       </form>
-      <div class="chips" id="chips" role="group" aria-label="Filter"></div>
+      <div id="chips"></div>
     </div>
-
-    <div class="gutter">
-      <div id="list" aria-live="polite"></div>
-      <div class="foot"></div>
-    </div>
+    <div id="list" class="g"></div>
   </main>
-
   <article id="detail" hidden></article>
 </div>
 
-<div class="sheet" id="sheet" hidden>
-  <div class="sheet-bg" data-close></div>
-  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
-    <div class="sheet-head gutter">
-      <h2 id="sheet-title">Rezept hochladen</h2>
-      <button type="button" class="icon-btn" data-close aria-label="Schließen">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
+<div id="sheet" hidden>
+  <div class="shade" data-act="close"></div>
+  <div class="panel g" role="dialog" aria-modal="true" aria-labelledby="sh">
+    <div><h2 id="sh">Rezept hochladen</h2><button class="icon" data-act="close" aria-label="Schließen"><svg class="i"><use href="#x"/></svg></button></div>
+    <div id="s-in">
+      <textarea id="up" aria-label="Rezepttext" placeholder="Rezept hier einfügen, zum Beispiel:&#10;&#10;Butter Chicken Burritos&#10;Zutaten&#10;- 800 g Hähnchenbrust&#10;…&#10;Zubereitung&#10;1. …&#10;Nährwerte (pro Burrito): 375 kcal · 36 g Eiweiß"></textarea>
+      <div class="actions"><button class="line" data-act="paste">Einfügen</button><button class="btn" data-act="convert">Umwandeln</button></div>
     </div>
-    <div class="sheet-body gutter">
-      <div id="up-input-step">
-        <label for="up-text" class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Rezepttext</label>
-        <textarea id="up-text" class="up-text" placeholder="Rezept hier einfügen, zum Beispiel:&#10;&#10;Butter Chicken Burritos&#10;Zutaten&#10;◦ 800 g Hähnchenbrust&#10;…&#10;Zubereitung&#10;1. …&#10;Nährwerte (pro Burrito)&#10;• 375 kcal"></textarea>
-        <div class="up-actions">
-          <label class="btn btn-line" for="up-pick" id="up-pick-label">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M9 4.5V3.5h6v1M9.5 10h5M9.5 14h5"/></svg>
-            <span id="up-pick-text">Datei</span>
-          </label>
-          <input type="file" id="up-pick" accept=".txt,.md,text/plain" hidden>
-          <button type="button" class="btn btn-primary" id="up-go" disabled>Umwandeln</button>
-        </div>
-        <p class="up-msg" id="up-msg" role="status"></p>
-      </div>
-      <div id="up-preview-step" hidden>
-        <div class="pv" id="pv-list" style="margin-top:4px"></div>
-        <div class="up-actions">
-          <button type="button" class="btn btn-line" id="pv-back">Zurück</button>
-          <button type="button" class="btn btn-primary" id="pv-save">Speichern</button>
-        </div>
-        <p class="up-msg" id="pv-msg" role="status"></p>
-      </div>
+    <div id="s-pv" hidden>
+      <div id="pv"></div>
+      <div class="actions"><button class="line" data-act="edit">Zurück</button><button class="btn" data-act="store">Speichern</button></div>
     </div>
+    <p id="msg" role="status"></p>
   </div>
 </div>
-
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="toast" role="status"></div>
 
 <script>
-/* ============================== Rezepte ============================== */
-const RECIPES = [
-  {
-    id: "butter-chicken-burritos", title: "Butter Chicken Burritos", kind: "herzhaft", meat: true,
-    yield: "8 Burritos", per: "pro Burrito", approx: false, n: [375, 36, 43, 6.5],
-    tags: "hähnchen chicken huhn indisch curry tortilla wrap",
-    groups: [
-      ["Burritos", "", [
-        ["800 g", "Hähnchenbrust"],
-        ["120 g", "griechischer Joghurt", "fettarm"],
-        ["200 g", "Reis"],
-        ["20 g", "Light-Joghurtbutter"],
-        ["1", "Zwiebel"],
-        ["2", "Knoblauchzehen"],
-        ["2 TL", "Ingwer", "frisch, fein gehackt"],
-        ["400 ml", "passierte Tomaten"],
-        ["60 g", "Light-Frischkäse"],
-        ["8", "High-Protein-Tortillas"],
-        ["", "Ölspray"]
-      ]],
-      ["Gewürze", "2× verwenden: für Marinade und Sauce", [
-        ["1 TL", "Paprikapulver"],
-        ["1 TL", "Kreuzkümmel"],
-        ["1½ TL", "Garam Masala"],
-        ["½ TL", "Kurkuma"],
-        ["1 TL", "Salz"]
-      ]]
-    ],
-    steps: [
-      "Reis nach Packungsanleitung kochen und beiseitestellen.",
-      "Hähnchen in kleine Würfel schneiden.",
-      "Hähnchen mit dem griechischen Joghurt und der ersten Gewürzmischung vermengen und 10–15 Minuten marinieren.",
-      "Hähnchen mit etwas Ölspray in einer Pfanne goldbraun und durchgegart anbraten. Anschließend aus der Pfanne nehmen.",
-      "In derselben Pfanne die Light-Joghurtbutter schmelzen.",
-      "Zwiebel, Knoblauch und Ingwer fein hacken und 2–3 Minuten anschwitzen.",
-      "Die zweite Gewürzmischung hinzufügen und etwa 30 Sekunden mitrösten.",
-      "Passierte Tomaten einrühren und 5 Minuten köcheln lassen.",
-      "Light-Frischkäse unterrühren und die Sauce nach Wunsch fein pürieren.",
-      "Das angebratene Hähnchen zurück in die Sauce geben und gut vermengen.",
-      "Auf jede Tortilla etwas Reis und Butter Chicken verteilen.",
-      "Burritos fest einrollen.",
-      "Mit etwas Ölspray von beiden Seiten in der Pfanne goldbraun anbraten.",
-      "Nach Belieben mit einer Joghurtsoße servieren."
-    ]
-  },
-  {
-    id: "pizza-hot-pockets", title: "Pizza Hot Pockets", kind: "herzhaft", meat: true,
-    yield: "8 Hot Pockets", per: "pro Hot Pocket", approx: false, n: [315, 28, 35, 7],
-    tags: "pizza schinken käse teig topfen quark ofen",
-    groups: [
-      ["Teig", "", [
-        ["500 g", "Magertopfen"],
-        ["415 g", "Weizenmehl"],
-        ["1¼ TL", "Backpulver"],
-        ["1 TL", "Salz"]
-      ]],
-      ["Füllung", "", [
-        ["120 ml", "passierte Tomaten"],
-        ["", "Pfeffer", "nach Geschmack"],
-        ["", "Knoblauchpulver", "nach Geschmack"],
-        ["120 g", "Schinkenwürfel"],
-        ["160 g", "Streukäse", "fettarm"]
-      ]],
-      ["Zusätzlich", "", [
-        ["", "Ölspray oder etwas Öl", "zum Anbraten"]
-      ]]
-    ],
-    steps: [
-      "Magertopfen, Mehl, Backpulver und Salz zu einem glatten Teig verkneten.",
-      "Den Teig 10 Minuten ruhen lassen.",
-      "Passierte Tomaten mit Pfeffer und Knoblauchpulver würzen und verrühren.",
-      "Den Teig in 8 gleich große Stücke teilen.",
-      "Jedes Stück rund ausrollen.",
-      "Auf jedes Teigstück zuerst 20 g Streukäse geben.",
-      "Anschließend 1 EL Tomatensoße darauf verteilen.",
-      "Danach 15 g Schinkenwürfel auf die Tomatensoße geben.",
-      "Die Teigränder über der Füllung zusammenklappen und gut verschließen.",
-      "Die Hot Pockets leicht flach drücken.",
-      "Mit etwas Ölspray oder wenig Öl von beiden Seiten scharf anbraten, bis sie goldbraune Stellen bekommen.",
-      "Anschließend im vorgeheizten Backofen bei 180 °C Umluft 12–15 Minuten backen, bis der Teig vollständig durchgebacken ist."
-    ]
-  },
-  {
-    id: "dot-cake", title: "Dot Cake", kind: "suess", meat: false,
-    yield: "1 Kuchen", per: "pro Kuchen", approx: false, n: [301, 29.1, 31.6, 6.3],
-    tags: "kuchen skyr dessert streusel vanille backen",
-    groups: [
-      ["", "", [
-        ["200 g", "Skyr"],
-        ["1", "Ei", "Größe M"],
-        ["3 g", "Backpulver"],
-        ["", "Vanille-Puddingpulver", "nach Geschmack"],
-        ["6 g", "Chunky Flavour Vanilla Perfection"],
-        ["20 g", "bunte Streusel"]
-      ]]
-    ],
-    steps: [
-      "75 g Skyr mit dem Ei, 3 g Chunky Flavour, Backpulver und etwas Vanille-Puddingpulver zu einem glatten Teig verrühren.",
-      "Den Teig in eine kleine, ofenfeste Form geben.",
-      "Im vorgeheizten Backofen bei 160 °C ca. 20 Minuten backen.",
-      "Den Kuchen vollständig auskühlen lassen.",
-      "Die restlichen 125 g Skyr mit den übrigen 3 g Chunky Flavour verrühren.",
-      "Die Skyr-Creme gleichmäßig auf dem abgekühlten Kuchen verstreichen.",
-      "Mit den 20 g bunten Streuseln dekorieren.",
-      "Mindestens 30 Minuten kalt stellen und anschließend genießen."
-    ]
-  },
-  {
-    id: "crispy-cheesy-beef-taquitos", title: "Crispy Cheesy Beef Taquitos", kind: "herzhaft", meat: true,
-    yield: "8 Taquitos", per: "pro Taquito", approx: false, n: [295, 15, 19, 18],
-    tags: "rind hackfleisch faschiertes mexikanisch tortilla avocado dip käse",
-    groups: [
-      ["Füllung", "", [
-        ["250 g", "Rinderhackfleisch"],
-        ["1", "Zwiebel", "mittelgroß, fein gewürfelt"],
-        ["1 TL", "Knoblauchpulver"],
-        ["1 TL", "Zwiebelpulver"],
-        ["1 TL", "Paprikapulver"],
-        ["1 TL", "Salz"],
-        ["½ TL", "schwarzer Pfeffer"],
-        ["½ TL", "geräuchertes Paprikapulver"],
-        ["", "Chiliflocken", "nach Geschmack"],
-        ["1 EL", "Tomatenmark"],
-        ["4 EL", "passierte Tomaten"],
-        ["2–4 EL", "Wasser", "nach Bedarf"]
-      ]],
-      ["Zum Füllen", "", [
-        ["8", "kleine Weizentortillas"],
-        ["250 g", "Mozzarella", "gerieben"],
-        ["", "neutrales Öl", "zum Anbraten"]
-      ]],
-      ["Avocado-Petersilien-Dip", "", [
-        ["1", "reife Avocado"],
-        ["2 EL", "Petersilie", "frisch"],
-        ["2", "Knoblauchzehen"],
-        ["½", "Zitrone", "nur der Saft"],
-        ["1 EL", "Olivenöl"],
-        ["", "Salz und Pfeffer"],
-        ["1–2 EL", "Wasser", "nach Bedarf"]
-      ]]
-    ],
-    steps: [
-      "Etwas Öl in einer Pfanne erhitzen und die fein gewürfelte Zwiebel ca. 3 Minuten glasig anbraten.",
-      "Das Hackfleisch dazugeben und 5–6 Minuten krümelig anbraten.",
-      "Knoblauchpulver, Zwiebelpulver, Paprikapulver, Salz, Pfeffer, Chiliflocken, geräuchertes Paprikapulver, Tomatenmark und passierte Tomaten einrühren.",
-      "2–4 EL Wasser hinzufügen und 2–3 Minuten köcheln lassen, bis die Masse leicht eindickt. Anschließend etwas abkühlen lassen.",
-      "Für den Dip Avocado, Petersilie, Knoblauch, Zitronensaft, Olivenöl, Salz und Pfeffer pürieren. Nach Bedarf 1–2 EL Wasser hinzufügen, bis eine cremige Konsistenz entsteht.",
-      "Eine Tortilla flach hinlegen und etwas geriebenen Mozzarella in die Mitte geben.",
-      "Etwas Hackfleisch darauf verteilen und nochmals etwas Mozzarella darüberstreuen.",
-      "Die Tortilla fest zu einem Taquito aufrollen.",
-      "Mit den restlichen Tortillas genauso verfahren.",
-      "Öl in einer Pfanne erhitzen und die Taquitos mit der Nahtseite nach unten 3–4 Minuten goldbraun und knusprig anbraten. Dabei regelmäßig wenden.",
-      "Auf Küchenpapier abtropfen lassen.",
-      "Warm mit dem Avocado-Petersilien-Dip servieren."
-    ]
-  },
-  {
-    id: "cookie-dough", title: "Cookie Dough", kind: "suess", meat: false,
-    yield: "", per: "pro Portion", approx: true, n: [310, 18, 18, 18],
-    tags: "dessert snack schoko joghurt keksteig ohne backen",
-    groups: [
-      ["", "", [
-        ["100 g", "griechischer Joghurt", "oder pflanzliche Alternative"],
-        ["2 EL", "Ahornsirup"],
-        ["30 g", "Proteinpulver", "Vanille oder neutral"],
-        ["60 g", "Mandelmehl"],
-        ["2–3 EL", "Schokodrops", "Zartbitter oder zuckerfrei"]
-      ]]
-    ],
-    steps: [
-      "Den griechischen Joghurt mit dem Ahornsirup in einer Schüssel verrühren.",
-      "Proteinpulver und Mandelmehl hinzufügen und alles zu einer cremigen, glatten Masse vermischen.",
-      "Die Schokodrops unterheben und gleichmäßig verteilen.",
-      "Den Cookie Dough 15–30 Minuten in den Kühlschrank stellen, damit er fester wird.",
-      "Direkt genießen oder in kleine Schälchen portionieren."
-    ]
-  },
-  {
-    id: "honey-bbq-chicken-mac-and-cheese", title: "Honey BBQ Chicken Mac & Cheese", kind: "herzhaft", meat: true,
-    yield: "4 Portionen", per: "pro Portion", approx: false, n: [587, 59, 67.5, 9],
-    tags: "hähnchen chicken huhn nudeln pasta makkaroni käse bbq meal prep",
-    groups: [
-      ["Honey-BBQ-Chicken", "", [
-        ["700 g", "Hähnchenbrust", "roh"],
-        ["1 TL", "Salz"],
-        ["1 TL", "Zwiebelpulver"],
-        ["1 TL", "geräuchertes Paprikapulver"],
-        ["1 TL", "Knoblauchpulver"],
-        ["1 TL", "Olivenöl"],
-        ["25 g", "Honig"],
-        ["85 g", "BBQ-Sauce", "zuckerfrei oder zuckerreduziert"]
-      ]],
-      ["Mac & Cheese", "", [
-        ["320 g", "Makkaroni", "oder andere Pasta, ungekocht gewogen"],
-        ["340 ml", "Kaffeeobers", "fettfrei"],
-        ["80 g", "Light-Frischkäse"],
-        ["1½ TL", "Hühnerbrühepulver"],
-        ["100 g", "Light-Cheddar", "gerieben"]
-      ]]
-    ],
-    steps: [
-      "Die Hähnchenbrust in kleine Würfel schneiden.",
-      "Das Hähnchen mit Salz, Zwiebelpulver, geräuchertem Paprikapulver, Knoblauchpulver und 1 TL Olivenöl gut vermischen.",
-      "Das Hähnchen in einer Pfanne bei mittlerer bis hoher Hitze anbraten, bis es goldbraun und vollständig durchgegart ist.",
-      "Honig und BBQ-Sauce zum Hähnchen geben.",
-      "Alles gut vermischen und kurz erhitzen, bis die Sauce das Hähnchen gleichmäßig überzieht. Anschließend beiseitestellen.",
-      "Die Pasta nach Packungsanleitung kochen und abgießen.",
-      "Das Kaffeeobers in einen Topf oder eine große Pfanne geben und bei niedriger bis mittlerer Hitze erwärmen.",
-      "Light-Frischkäse und Hühnerbrühepulver hinzufügen und glatt rühren.",
-      "Den geriebenen Light-Cheddar dazugeben und unter ständigem Rühren schmelzen lassen, bis eine cremige Käsesauce entsteht.",
-      "Die gekochte Pasta zur Käsesauce geben und alles gut vermengen.",
-      "Das Mac & Cheese auf 4 Portionen verteilen.",
-      "Das Honey-BBQ-Chicken darauf oder daneben verteilen und servieren."
-    ]
-  },
-  {
-    id: "korean-beef-cucumber-bowls", title: "Korean Beef & Cucumber Bowls", kind: "herzhaft", meat: true,
-    yield: "4 Portionen", per: "pro Portion", approx: true, n: [430, 32, 45, 14],
-    tags: "rind hackfleisch faschiertes reis asiatisch koreanisch meal prep bowl gurke",
-    groups: [
-      ["Korean Beef", "", [
-        ["500 g", "mageres Rinderhackfleisch", "5–10 % Fett"],
-        ["2 EL", "Sojasauce"],
-        ["1 EL", "Honig"],
-        ["1 TL", "Sesamöl"],
-        ["", "Knoblauch", "nach Geschmack"],
-        ["", "Chiliflocken", "nach Geschmack"]
-      ]],
-      ["Bowl", "", [
-        ["2 Tassen", "Jasminreis", "gekocht"],
-        ["1", "Gurke", "gewürfelt"],
-        ["", "Sojasauce", "etwas, für die Gurke"],
-        ["", "Frühlingszwiebel", "zum Garnieren"]
-      ]]
-    ],
-    steps: [
-      "Das Rinderhackfleisch in einer Pfanne bei mittlerer bis hoher Hitze 6–8 Minuten krümelig und vollständig durchbraten.",
-      "Falls viel Fett ausgetreten ist, überschüssiges Fett abgießen.",
-      "2 EL Sojasauce, 1 EL Honig, 1 TL Sesamöl und Knoblauch zum Hackfleisch geben.",
-      "Alles gut vermischen und 2–3 Minuten köcheln lassen, bis die Sauce das Fleisch schön überzieht.",
-      "Die Gurke klein würfeln und mit Chiliflocken und einem kleinen Schuss Sojasauce vermengen.",
-      "Den gekochten Jasminreis auf 4 Meal-Prep-Boxen verteilen.",
-      "Das Korean Beef gleichmäßig auf die 4 Portionen verteilen.",
-      "Die gewürzte Gurke daneben geben.",
-      "Mit fein geschnittener Frühlingszwiebel toppen und servieren oder kalt stellen."
-    ]
-  },
-  {
-    id: "cheeseburger-pockets", title: "Cheeseburger Pockets", kind: "herzhaft", meat: true,
-    yield: "8 Pockets", per: "pro Pocket", approx: true, n: [380, 31, 43, 7],
-    tags: "rind hackfleisch faschiertes burger teig topfen quark ofen",
-    groups: [
-      ["Teig", "", [
-        ["500 g", "Topfen"],
-        ["410 g", "Mehl"],
-        ["1¼ TL", "Backpulver"],
-        ["1 Prise", "Salz"]
-      ]],
-      ["Füllung", "", [
-        ["400 g", "mageres Rinderhackfleisch"],
-        ["1", "Zwiebel", "mittelgroß"],
-        ["1½ TL", "Knoblauchpulver"],
-        ["1½ TL", "Paprikapulver"],
-        ["1½ TL", "Salz"],
-        ["1½ TL", "Pfeffer"],
-        ["80 g", "Light-Frischkäse"],
-        ["45 g", "Ketchup"],
-        ["1 EL", "Senf", "mittelscharf"],
-        ["60 g", "Essiggurken"],
-        ["", "Ölspray oder Öl"]
-      ]],
-      ["Zusätzlich", "", [
-        ["160 g", "Light-Streukäse"]
-      ]]
-    ],
-    steps: [
-      "Topfen, Mehl, Backpulver und eine Prise Salz zu einem glatten Teig verkneten und kurz ruhen lassen.",
-      "Das Rinderhackfleisch in einer Pfanne scharf und krümelig anbraten.",
-      "Die Zwiebel fein würfeln und mit Knoblauchpulver, Paprikapulver, Salz und Pfeffer zum Hackfleisch geben. Kurz mitbraten.",
-      "Light-Frischkäse, Ketchup, Senf und die gewürfelten Essiggurken einrühren und alles gut vermengen.",
-      "Den Teig in 8 gleich große Stücke teilen und jeweils rund ausrollen.",
-      "Auf jedes Teigstück etwas Light-Streukäse und dann die Hackfleischfüllung in die Mitte geben.",
-      "Den Teig über der Füllung gut verschließen und die Pockets leicht flach drücken.",
-      "Die Pockets mit etwas Ölspray oder Öl von beiden Seiten scharf anbraten, bis sie goldbraune Stellen bekommen.",
-      "Bei 180 °C Umluft ca. 12–15 Minuten im Ofen backen, bis der Teig vollständig durchgebacken ist."
-    ]
-  },
-  {
-    id: "fudgy-brownies", title: "Fudgy Brownies", kind: "suess", meat: false,
-    yield: "9 Brownies", per: "pro Brownie", approx: true, n: [99, 11, 8, 2],
-    tags: "schoko schokolade kuchen dessert backen cottage cheese",
-    groups: [
-      ["Trocken", "", [
-        ["80 g", "Weizenmehl"],
-        ["20 g", "Kakaopulver"],
-        ["65 g", "Schoko-Proteinpulver"],
-        ["10 g", "Chunky Flavor"],
-        ["1 Prise", "Salz"]
-      ]],
-      ["Feucht", "", [
-        ["150 ml", "Eiklar"],
-        ["2", "Eier", "groß"],
-        ["100 g", "Cottage Cheese"],
-        ["20 g", "Apfelmus"],
-        ["20 ml", "Ahornsirup"],
-        ["5 ml", "Vanilleextrakt"],
-        ["", "Schokostückchen", "optional"]
-      ]]
-    ],
-    steps: [
-      "Den Backofen auf 180 °C vorheizen.",
-      "Mehl, Kakaopulver, Schoko-Proteinpulver, Chunky Flavor und Salz in einer Schüssel vermischen.",
-      "Eiklar, Eier, Cottage Cheese, Apfelmus, Ahornsirup und Vanilleextrakt in einen Mixer geben und etwa 10 Sekunden glatt mixen.",
-      "Die flüssige Mischung zu den trockenen Zutaten geben und vorsichtig unterheben, bis ein dicker, gleichmäßiger Teig entsteht.",
-      "Nach Wunsch Schokostückchen unterheben oder darüberstreuen.",
-      "Den Teig in eine mit Backpapier ausgelegte kleine Backform geben und gleichmäßig verteilen.",
-      "Bei 180 °C 12–15 Minuten backen. Für besonders fudgy Brownies eher Richtung 12 Minuten.",
-      "Die Brownies vollständig auskühlen lassen. Noch besser werden sie, wenn sie danach im Kühlschrank kalt gestellt werden.",
-      "In 9 gleich große Stücke schneiden und genießen."
-    ]
-  },
-  {
-    id: "crispy-chicken-caesar-salad", title: "Crispy Chicken Caesar Salad", kind: "herzhaft", meat: true,
-    yield: "", per: "", approx: true, n: [469, 62, 27, 12],
-    tags: "hähnchen chicken huhn salat airfryer heißluftfritteuse paniert",
-    groups: [
-      ["Crispy Chicken", "", [
-        ["ca. 450 g", "Hähnchenbrust"],
-        ["", "Salz und Pfeffer", "nach Geschmack"],
-        ["1 TL", "Zwiebelpulver"],
-        ["1 TL", "Knoblauchpulver"],
-        ["1 TL", "Paprikapulver"],
-        ["¼ TL", "Cayennepfeffer", "optional"]
-      ]],
-      ["Panade", "", [
-        ["ca. 40 g", "Weizenmehl"],
-        ["2", "Eier"],
-        ["", "Hot Sauce", "ein Schuss"],
-        ["ca. 50 g", "Cornflakes"],
-        ["ca. 30 g", "Semmelbrösel"],
-        ["", "Ölspray"]
-      ]],
-      ["Salat", "", [
-        ["4 Tassen", "Römersalat"],
-        ["ca. 40 g", "Croutons"],
-        ["20–30 g", "Parmesan", "gehobelt"]
-      ]],
-      ["Leichtes Caesar-Dressing", "", [
-        ["150 g", "griechischer Joghurt"],
-        ["1–2 TL", "Dijon-Senf"],
-        ["½", "Zitrone", "nur der Saft"],
-        ["2", "Sardellenfilets"],
-        ["1", "kleine Knoblauchzehe"],
-        ["ca. 15 g", "Parmesan", "fein gerieben"],
-        ["1 TL", "Worcestersauce"],
-        ["", "schwarzer Pfeffer und Salz", "nach Geschmack"],
-        ["1–2 EL", "Wasser", "falls das Dressing zu dick ist"]
-      ]]
-    ],
-    steps: [
-      "Die Hähnchenbrust zwischen Backpapier oder Frischhaltefolie legen und flacher klopfen, damit sie gleichmäßig dick ist.",
-      "Das Hähnchen auf beiden Seiten mit Salz, Pfeffer, Zwiebelpulver, Knoblauchpulver, Paprikapulver und optional Cayennepfeffer würzen.",
-      ["Drei Schüsseln für die Panade vorbereiten:", [
-        "Schüssel 1: Mehl",
-        "Schüssel 2: Eier mit etwas Hot Sauce verquirlen",
-        "Schüssel 3: zerdrückte Cornflakes mit Semmelbröseln vermischen"
-      ]],
-      "Das Hähnchen zuerst vollständig im Mehl wenden.",
-      "Danach durch die Eiermischung ziehen.",
-      "Anschließend kräftig in die Cornflakes-Semmelbrösel-Mischung drücken, sodass das Hähnchen rundherum paniert ist.",
-      "Das panierte Hähnchen leicht mit Ölspray besprühen.",
-      "Im Airfryer bei etwa 195 °C ca. 15 Minuten goldbraun und knusprig garen. Das Hähnchen muss innen vollständig durchgegart sein.",
-      "Für das Dressing Joghurt, Dijon-Senf, Zitronensaft, Sardellen, Knoblauch, Parmesan, Worcestersauce und Pfeffer fein pürieren.",
-      "Ist das Dressing zu dick, 1–2 EL Wasser dazugeben und erneut verrühren.",
-      "Römersalat waschen, trocknen und grob schneiden.",
-      "Den Salat mit dem Caesar-Dressing vermengen.",
-      "Croutons und gehobelten Parmesan darübergeben.",
-      "Das knusprige Hähnchen in Streifen schneiden und auf dem Salat verteilen."
-    ]
-  },
-  {
-    id: "dumpling-lasagna", title: "Dumpling Lasagna", kind: "herzhaft", meat: true,
-    yield: "4 Portionen", per: "pro Portion", approx: true, n: [350, 30, 30, 12],
-    tags: "huhn hähnchen schwein faschiertes hackfleisch asiatisch gedämpft dampfgarer wonton",
-    groups: [
-      ["Dumpling-Füllung", "", [
-        ["450 g", "Hühner- oder Schweinefaschiertes"],
-        ["3", "Frühlingszwiebeln", "fein geschnitten"],
-        ["6", "Knoblauchzehen"],
-        ["3 EL", "Sojasauce"],
-        ["1 EL", "Reisessig"],
-        ["1 EL", "geröstetes Sesamöl"],
-        ["2 EL", "Chili Crunch", "knuspriges Chiliöl"],
-        ["1 EL", "Ingwer", "frisch, gerieben"],
-        ["1 EL", "Austernsauce"]
-      ]],
-      ["Lasagne", "", [
-        ["18–24", "Wonton- oder Dumpling-Teigblätter"],
-        ["2 EL", "Hühnerbrühe oder Wasser"]
-      ]],
-      ["Zum Garnieren", "nach Geschmack", [
-        ["", "Sojasauce"],
-        ["", "Chili Crunch"],
-        ["", "Frühlingszwiebeln"],
-        ["", "Sesamsamen"]
-      ]]
-    ],
-    steps: [
-      "Das Faschierte in eine große Schüssel geben.",
-      "Frühlingszwiebeln und Knoblauch fein hacken und zum Fleisch geben.",
-      "Sojasauce, Reisessig, Sesamöl, Chili Crunch, geriebenen Ingwer und Austernsauce dazugeben.",
-      "Alles gründlich vermischen, bis eine gleichmäßige Fleischmasse entsteht.",
-      "Einen großen Topf mit etwas Wasser füllen und einen Dampfgareinsatz hineinstellen. Das Wasser zum leichten Kochen bringen.",
-      "Eine hitzebeständige Auflaufform (ca. 20 × 20 cm) vorbereiten, die in den Dampfgareinsatz passt.",
-      "Die Wonton-Teigblätter einzeln 1–2 Sekunden in Wasser tauchen, damit sie etwas weicher werden.",
-      "Den Boden der Form mit etwa 6 Teigblättern auslegen. Sie dürfen sich leicht überlappen.",
-      "Eine dünne Schicht der rohen Fleischfüllung gleichmäßig darauf verteilen.",
-      "Wieder eine Schicht Teigblätter darauflegen und erneut Fleischfüllung verteilen.",
-      "Wiederholen, bis die Füllung aufgebraucht ist. Insgesamt entstehen etwa 4 Schichten.",
-      "Mit einer letzten Schicht Teigblätter abschließen.",
-      "Die 2 EL Hühnerbrühe oder Wasser gleichmäßig darüberträufeln.",
-      "Die Form vorsichtig in den Dampfgareinsatz stellen. Sie darf nicht direkt im Wasser stehen.",
-      "Den Topf mit einem Deckel schließen und die Lasagna bei leicht kochendem Wasser 20–22 Minuten dämpfen, bis das Fleisch vollständig durchgegart ist.",
-      "Die fertige Dumpling Lasagna vorsichtig aus dem Dampfgarer nehmen.",
-      "Mit etwas Sojasauce und Chili Crunch beträufeln.",
-      "Frühlingszwiebeln und Sesamsamen darüberstreuen.",
-      "Wie eine normale Lasagne in 4 gleich große Stücke schneiden und servieren."
-    ]
-  }
-];
+const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s), ic = n => `<svg class="i"><use href="#${n}"/></svg>`;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => `&#${c.charCodeAt(0)};`);
+const fmt = n => n == null ? "–" : n.toLocaleString("de-DE");
+const norm = s => s.toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/\p{M}/gu, "");
+const slug = t => norm(t).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "rezept";
+const get = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } };
+const put = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
+const toast = m => { const t = $("#toast"); t.textContent = m; t.className = "show"; clearTimeout(t.t); t.t = setTimeout(() => t.className = "", 1800); };
 
-/* ============================== Helfer ============================== */
-const $ = (s, el = document) => el.querySelector(s);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const fmt = n => n.toLocaleString("de-DE");
-const norm = s => s.toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/[̀-ͯ]/g, "");
-const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+/* ---------- Rezept-Leser: Text → Rezepte (für rezepte.txt und Hochladen) ---------- */
+const BUL = /^[-–—•◦*▪●·]\s*/, NUM = /^(\d+[.):]|schritt\s*\d+:?)\s*/i;
+const HEAD = { ing: /^(zutaten|du brauchst|einkaufsliste)\b/i, steps: /^(zubereitung|anleitung|so geht|schritte)\b/i, nut: /^(nährwerte|makros)\b/i };
+const NUT = "(kcal|kalorien|eiweiss|protein|kohlenhydrate|kh|fett)(?![a-z])", NK = { kcal: 0, kalorien: 0, eiweiss: 1, protein: 1, kohlenhydrate: 2, kh: 2, fett: 3 };
+const AMT = /^((?:ca\.\s*)?(?:\d+(?:[.,]\d+)?\s*[½¼¾]?|[½¼¾])(?:\s*[–-]\s*\d+)?(?:\s*(?:kg|g|ml|l|EL|TL|Prisen?|Tassen?|Stück|Pck\.?|Dosen?|Bund|Zehen?|Scheiben?|Becher|Handvoll)(?![a-zäöüß]))?)\s+(.+)/i;
+const MEAT = /hahnchen|chicken|huhn|rind|beef|schwein|schinken|speck|bacon|(^|[^e])hack|faschiert|pute|lamm|wurst|salami|chorizo|kebab|gyros|steak|sardell|thunfisch|lachs|fisch|garnele|shrimp|kalb/;
+const SWEET = /kuchen|cake|brownie|cookie|keks|muffin|pancake|palatschinke|waffel|dessert|pudding|tiramisu|porridge|granola/;
+const SWEETISH = /schoko|kakao|streusel|zucker|ahornsirup|chunky flavo|marmelade/, SAVORY = /zwiebel|knoblauch|bruhe|soja|senf|ketchup|tomate|chili|curry|parmesan|mozzarella|cheddar/;
+const looksNut = l => { const t = norm(l); return /\d\s*(kcal|kalorien)(?![a-z])|(kcal|kalorien):?\s*\d/.test(t) || (t.match(/(eiweiss|protein|kohlenhydrate|fett)(?![a-z])/g) || []).length > 1; };
 
-function prepare(r) {
-  const words = [r.title, r.tags, r.kind === "suess" ? "süß suess dessert" : "herzhaft", r.meat ? "fleisch" : "vegetarisch veggie"];
-  r.groups.forEach(([g, , items]) => { words.push(g); items.forEach(i => words.push(i[1])); });
-  r._idx = norm(words.join(" "));
-  const ok = [1, 2, 3].every(i => typeof r.n[i] === "number");
-  const kc = ok ? [r.n[1] * 4, r.n[2] * 4, r.n[3] * 9] : [0, 0, 0];
-  const sum = kc.reduce((a, b) => a + b, 0);
-  r._share = sum > 0 ? kc.map(v => Math.round(v / sum * 100)) : null;
-  return r;
+function item(s) { // "2 TL Ingwer (frisch)" → ["2 TL", "Ingwer", "frisch"]
+  const hint = [];
+  s = s.replace(/\s*\(([^)]*)\)$/, (_, h) => (hint.push(h), "")).replace(/[,\s]+(nach (?:Geschmack|Bedarf|Belieben)|optional)$/i, (_, h) => (hint.unshift(h), ""));
+  const m = s.match(AMT);
+  s = (m ? m[2] : s).replace(/,\s*([a-zäöüß½\d].*)$/, (_, h) => (hint.unshift(h), ""));
+  return [m ? m[1].trim() : "", s.trim(), ...hint.length ? [hint.join(", ")] : []];
 }
-RECIPES.forEach(prepare);
-let uploaded = [];
-let ALL = RECIPES.slice();
-
-const KEY = "naehrwerk:v2";
-const store = (() => {
-  let data = { have: {}, done: {} };
-  try { const raw = localStorage.getItem(KEY); if (raw) data = Object.assign(data, JSON.parse(raw)); } catch (e) {}
-  return {
-    data,
-    save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} }
-  };
-})();
-
-const FILTERS = [
-  { id: "alle", label: "Alle", test: () => true },
-  { id: "fleisch", label: "Fleisch", test: r => r.meat },
-  { id: "vegetarisch", label: "Vegetarisch", test: r => !r.meat },
-  { id: "suess", label: "Süß", test: r => r.kind === "suess" }
-];
-const SECTIONS = [["herzhaft", "Herzhaft"], ["suess", "Süß"]];
-const ui = { filter: "alle", homeScroll: 0 };
-
-const home = $("#home"), detail = $("#detail"), list = $("#list"), q = $("#q"), clearBtn = $("#clear"), chipsEl = $("#chips"), toolbar = $("#toolbar");
-
-function macroBar(r) {
-  if (!r._share) return "";
-  return `<span class="macro" aria-hidden="true">${r._share.map(v => `<i style="flex:${v}"></i>`).join("")}</span>`;
+function nutr(l, r) { // "375 kcal · 36 g Eiweiß" oder "Protein: 36"
+  const t = norm(l), set = (k, v) => r.n[NK[k]] ??= parseFloat(v.replace(",", "."));
+  for (const m of t.matchAll(new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*g?\\s*${NUT}`, "g"))) set(m[2], m[1]);
+  for (const m of t.matchAll(new RegExp(`${NUT}\\s*:?\\s*(?:ca\\.?\\s*)?(\\d+(?:[.,]\\d+)?)`, "g"))) set(m[1], m[2]);
+  if (/\bca\b|etwa|~/.test(t)) r.approx = true;
+  r.per ||= (l.match(/\bpro\s+[^),:·|]+/i) || [""])[0].trim().replace(/^P/, "p");
 }
-
-/* ============================== Startseite ============================== */
-chipsEl.innerHTML = FILTERS.map(f => `<button type="button" class="chip" data-f="${f.id}" aria-pressed="false">${f.label}<span class="n"></span></button>`).join("");
-function updateCount() {
-  const ps = ALL.map(r => r.n[1]).filter(v => typeof v === "number");
-  $("#hero-count").textContent = `${ALL.length} Rezepte` + (ps.length ? ` · Ø ${fmt(Math.round(ps.reduce((a, b) => a + b, 0) / ps.length))} g Eiweiß` : "");
-}
-updateCount();
-
-function renderHome() {
-  const words = norm(q.value.trim()).split(/\s+/).filter(Boolean);
-  const matchQ = r => words.every(w => r._idx.includes(w));
-  clearBtn.hidden = !q.value;
-
-  chipsEl.querySelectorAll(".chip").forEach(btn => {
-    const f = FILTERS.find(x => x.id === btn.dataset.f);
-    btn.setAttribute("aria-pressed", String(f.id === ui.filter));
-    btn.querySelector(".n").textContent = ALL.filter(r => f.test(r) && matchQ(r)).length;
-  });
-
-  const cur = FILTERS.find(f => f.id === ui.filter);
-  const hits = ALL.filter(r => cur.test(r) && matchQ(r));
-
-  if (!hits.length) {
-    list.innerHTML = `<div class="empty"><p>${q.value ? `Nichts gefunden für „${esc(q.value.trim())}“.` : "Keine Rezepte in diesem Filter."}</p>
-      <small>Probier eine Zutat wie „Hähnchen“ oder „Skyr“.</small>
-      <button type="button" class="text-btn" id="reset-search">Suche und Filter zurücksetzen</button></div>`;
-    return;
-  }
-
-  list.innerHTML = SECTIONS.map(([key, label]) => {
-    const rs = hits.filter(r => r.kind === key).sort((a, b) => a.title.localeCompare(b.title, "de"));
-    if (!rs.length) return "";
-    return `<section class="section" aria-label="${label}">
-      <div class="section-h"><h2>${label}</h2></div>
-      ${rs.map(rowHTML).join("")}
-    </section>`;
-  }).join("");
-}
-
-function rowHTML(r) {
-  const meta = [typeof r.n[0] === "number" ? `${r.approx ? "ca. " : ""}${fmt(r.n[0])} kcal` : "", r.yield].filter(Boolean).map(esc).join('<span aria-hidden="true">·</span>');
-  return `<a class="row" href="#${r.id}">
-    <div>
-      <h3 class="row-title">${esc(r.title)}</h3>
-      <p class="row-meta">${meta}</p>
-      ${macroBar(r)}
-    </div>
-    <svg class="row-go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-  </a>`;
-}
-
-q.addEventListener("input", renderHome);
-q.addEventListener("keydown", e => { if (e.key === "Escape") { q.value = ""; renderHome(); } });
-$("#search-form").addEventListener("submit", e => { e.preventDefault(); q.blur(); });
-clearBtn.addEventListener("click", () => { q.value = ""; renderHome(); q.focus(); });
-chipsEl.addEventListener("click", e => {
-  const b = e.target.closest(".chip"); if (!b) return;
-  ui.filter = b.dataset.f; renderHome();
-});
-list.addEventListener("click", e => {
-  if (e.target.closest("#reset-search")) { q.value = ""; ui.filter = "alle"; renderHome(); }
-});
-
-/* ============================== Rezeptansicht ============================== */
-let current = null;
-
-function renderDetail(r) {
-  current = r;
-  const have = new Set(store.data.have[r.id] || []);
-  const done = new Set(store.data.done[r.id] || []);
-  const unit = (v, u) => typeof v === "number" ? `${fmt(v)}${u ? `<small>${u}</small>` : ""}` : "–";
-  const hasNutri = r.n.some(v => typeof v === "number");
-  const perLabel = (r.per || "Portionsgröße nicht angegeben") + (r.approx ? " · ca." : "");
-
-  const groups = r.groups.map(([name, note, items], gi) => `
-    <div class="grp">
-      ${name || note ? `<div class="grp-h">${name ? `<h3>${esc(name)}</h3>` : ""}${note ? `<small>${esc(note)}</small>` : ""}</div>` : ""}
-      <ul>${items.map(([amt, nm, hint], ii) => {
-        const k = `${gi}-${ii}`;
-        return `<li><button type="button" class="ing" data-k="${k}" aria-pressed="${have.has(k)}">
-          <span class="box">${ICON_CHECK}</span>
-          <span class="amt">${esc(amt || "–")}</span>
-          <span class="name">${esc(nm)}${hint ? `<small>${esc(hint)}</small>` : ""}</span>
-        </button></li>`;
-      }).join("")}</ul>
-    </div>`).join("");
-
-  const steps = r.steps.map((s, i) => {
-    const [text, sub] = Array.isArray(s) ? s : [s, null];
-    return `<li class="step" role="button" tabindex="0" data-s="${i}" aria-pressed="${done.has(i)}">
-      <span class="num"><span>${i + 1}</span>${ICON_CHECK}</span>
-      <div class="step-text">${esc(text)}${sub ? `<ul>${sub.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div>
-    </li>`;
-  }).join("");
-
-  detail.innerHTML = `
-    <header class="topbar gutter" id="topbar">
-      <a class="back" href="#" id="back">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-        Rezepte
-      </a>
-      <span class="topbar-title" aria-hidden="true">${esc(r.title)}</span>
-    </header>
-    <div class="gutter view-in">
-      <div class="d-head">
-        <h1 class="d-title" id="d-title">${esc(r.title)}</h1>
-        ${r.yield ? `<p class="d-yield">Ergibt ${esc(r.yield)}</p>` : ""}
-      </div>
-
-      ${hasNutri ? `<section class="nutri" aria-label="Nährwerte">
-        <div class="nutri-grid">
-          <div><b>${unit(r.n[0], "")}</b><span>kcal</span></div>
-          <div class="hl"><b>${unit(r.n[1], "g")}</b><span><i style="background:var(--basil)"></i>Eiweiß</span></div>
-          <div><b>${unit(r.n[2], "g")}</b><span><i style="background:var(--kurkuma)"></i>Kohlenh.</span></div>
-          <div><b>${unit(r.n[3], "g")}</b><span><i style="background:var(--sand)"></i>Fett</span></div>
-        </div>
-        ${macroBar(r)}
-        <p class="nutri-foot">${esc(perLabel)}</p>
-      </section>` : ""}
-
-      <section class="block" aria-labelledby="h-ing">
-        <div class="block-h"><h2 id="h-ing">Zutaten</h2></div>
-        ${groups}
-      </section>
-
-      <section class="block" aria-labelledby="h-steps">
-        <div class="block-h"><h2 id="h-steps">Zubereitung</h2></div>
-        <ol>${steps}</ol>
-        <div class="steps-foot" id="steps-foot"></div>
-      </section>
-
-      <div class="d-end"><a href="#">Zurück zu allen Rezepten</a>${r.user ? `<div class="del-area" id="del-area"><button type="button" class="text-btn danger" id="del-ask">Rezept löschen</button></div>` : ""}</div>
-    </div>
-    <div class="cartbar gutter" id="cartbar" hidden>
-      <div class="cartbar-in">
-        <span class="cartbar-count" id="cart-count"></span>
-        <button type="button" class="btn-ghost" id="cart-reset">Zurücksetzen</button>
-        <button type="button" class="btn-solid" id="cart-copy">Liste kopieren</button>
-      </div>
-    </div>`;
-  updateCart();
-  updateStepsFoot();
-}
-
-function updateCart() {
-  const r = current, have = (store.data.have[r.id] || []).length;
-  const total = r.groups.reduce((a, g) => a + g[2].length, 0), missing = total - have;
-  $("#cartbar").hidden = have === 0;
-  $("#cart-count").innerHTML = missing ? `<b>${missing}</b> ${missing === 1 ? "fehlt" : "fehlen"}` : "Alles da";
-  $("#cart-copy").hidden = missing === 0;
-}
-
-function updateStepsFoot() {
-  const n = (store.data.done[current.id] || []).length;
-  $("#steps-foot").innerHTML = n ? `<button type="button" class="text-btn" id="steps-reset" style="margin:0">Schritte zurücksetzen</button>` : "";
-}
-
-function toggleIn(bucket, id, key) {
-  const set = new Set(store.data[bucket][id] || []);
-  set.has(key) ? set.delete(key) : set.add(key);
-  if (set.size) store.data[bucket][id] = [...set]; else delete store.data[bucket][id];
-  store.save();
-  return set.has(key);
-}
-
-detail.addEventListener("click", e => {
-  const ing = e.target.closest(".ing");
-  if (ing) { ing.setAttribute("aria-pressed", String(toggleIn("have", current.id, ing.dataset.k))); updateCart(); return; }
-  const step = e.target.closest(".step");
-  if (step) { toggleStep(step); return; }
-  if (e.target.closest("#cart-reset")) {
-    delete store.data.have[current.id]; store.save();
-    detail.querySelectorAll(".ing").forEach(b => b.setAttribute("aria-pressed", "false"));
-    updateCart(); return;
-  }
-  if (e.target.closest("#steps-reset")) {
-    delete store.data.done[current.id]; store.save();
-    detail.querySelectorAll(".step").forEach(s => s.setAttribute("aria-pressed", "false"));
-    updateStepsFoot(); return;
-  }
-  if (e.target.closest("#cart-copy")) { copyList(); return; }
-  if (e.target.closest("#del-ask")) {
-    $("#del-area").innerHTML = `<button type="button" class="text-btn danger-solid" id="del-yes">Löschen</button><button type="button" class="text-btn" id="del-no">Abbrechen</button>`;
-    return;
-  }
-  if (e.target.closest("#del-no")) {
-    $("#del-area").innerHTML = `<button type="button" class="text-btn danger" id="del-ask">Rezept löschen</button>`;
-    return;
-  }
-  if (e.target.closest("#del-yes")) { deleteCurrent(); return; }
-  const back = e.target.closest('a[href="#"]');
-  if (back) { e.preventDefault(); goHome(); }
-});
-detail.addEventListener("keydown", e => {
-  const step = e.target.closest(".step");
-  if (step && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleStep(step); }
-});
-function toggleStep(step) {
-  const on = toggleIn("done", current.id, Number(step.dataset.s));
-  step.setAttribute("aria-pressed", String(on));
-  updateStepsFoot();
-}
-
-function copyList() {
-  const have = new Set(store.data.have[current.id] || []);
-  const items = [];
-  current.groups.forEach(([, , list], gi) => list.forEach((it, ii) => { if (!have.has(`${gi}-${ii}`)) items.push(it); }));
-  const text = `Einkaufsliste · ${current.title}\n` + items.map(([a, n]) => `– ${a ? a + " " : ""}${n}`).join("\n");
-  const fallback = () => {
-    const ta = document.createElement("textarea");
-    ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
-    document.body.appendChild(ta); ta.select();
-    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
-    ta.remove();
-    toast(ok ? "Einkaufsliste kopiert" : "Kopieren nicht möglich");
-  };
-  try {
-    navigator.clipboard.writeText(text).then(() => toast("Einkaufsliste kopiert"), fallback);
-  } catch (e) { fallback(); }
-}
-
-let toastTimer;
-function toast(msg) {
-  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
-}
-
-/* Bildschirm beim Kochen anlassen (wenn erlaubt) */
-let wake = null;
-async function keepAwake(on) {
-  try {
-    if (on && "wakeLock" in navigator && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); }
-    if (!on && wake) { await wake.release(); wake = null; }
-  } catch (e) { wake = null; }
-}
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && current && !detail.hidden) keepAwake(true); });
-
-/* ============================== Navigation ============================== */
-function goHome() {
-  if (location.hash && location.hash !== "#") location.hash = "";
-  else route();
-}
-
-function route() {
-  const id = decodeURIComponent(location.hash.slice(1));
-  const r = ALL.find(x => x.id === id);
-  if (r) {
-    if (!home.hidden) ui.homeScroll = window.scrollY;
-    home.hidden = true; detail.hidden = false;
-    renderDetail(r);
-    window.scrollTo(0, 0);
-    document.title = `${r.title} · Meal Prep`;
-    keepAwake(true);
-  } else {
-    const wasDetail = !detail.hidden;
-    detail.hidden = true; detail.innerHTML = ""; home.hidden = false; current = null;
-    renderHome();
-    window.scrollTo(0, wasDetail ? ui.homeScroll : 0);
-    document.title = "Meal Prep";
-    keepAwake(false);
-  }
-  onScroll();
-}
-
-function onScroll() {
-  if (!home.hidden) {
-    const top = parseFloat(getComputedStyle(toolbar).top) || 0;
-    toolbar.classList.toggle("stuck", toolbar.getBoundingClientRect().top <= top + .5);
-  } else {
-    const tb = $("#topbar"), h = $("#d-title");
-    if (tb && h) tb.classList.toggle("scrolled", h.getBoundingClientRect().bottom < tb.getBoundingClientRect().bottom);
-  }
-}
-let ticking = false;
-window.addEventListener("scroll", () => {
-  if (ticking) return; ticking = true;
-  requestAnimationFrame(() => { ticking = false; onScroll(); });
-}, { passive: true });
-window.addEventListener("hashchange", route);
-route();
-
-/* ============================== Hochladen ============================== */
-/* Rezepte werden direkt in der App gelesen (ohne Claude). Gespeichert wird im
-   Artifact-Speicher, wenn die App in Claude läuft, sonst auf dem Gerät. */
-let backend = null, pending = [];
-const IN_CLAUDE = !!(window.claude && typeof window.claude.use === "function");
-const sheet = $("#sheet"), upText = $("#up-text"), upGo = $("#up-go"), upPick = $("#up-pick"), upMsg = $("#up-msg");
-
-const slugify = t => norm(t).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "rezept";
-
-/* Bringt ein Rezept (vom Leser oder aus dem Speicher) in die Form der App. */
-function normalize(x) {
-  if (!x || typeof x !== "object") return null;
-  const str = (v, max = 400) => typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : (typeof v === "number" ? String(v) : "");
-  const num = v => {
-    if (v === null || v === undefined || v === "") return null;
-    const n = typeof v === "number" ? v : parseFloat(String(v).replace(",", "."));
-    return Number.isFinite(n) && n >= 0 ? Math.round(n * 10) / 10 : null;
-  };
-  const title = str(x.title, 120);
-  if (!title) return null;
-  const groups = (Array.isArray(x.groups) ? x.groups : []).map(g => {
-    const [gn, gnote, gitems] = Array.isArray(g) ? g : [g?.name, g?.note, g?.items];
-    const items = (Array.isArray(gitems) ? gitems : []).map(i => {
-      const [a, n, h] = Array.isArray(i) ? i : [i?.amount, i?.name, i?.hint];
-      const it = [str(a, 40), str(n, 160)];
-      const hint = str(h, 160);
-      if (hint) it.push(hint);
-      return it;
-    }).filter(i => i[1]);
-    return [str(gn, 80), str(gnote, 120), items];
-  }).filter(g => g[2].length);
-  const steps = (Array.isArray(x.steps) ? x.steps : []).map(st => {
-    if (typeof st === "string") return str(st, 2000);
-    const [t, sub] = Array.isArray(st) ? st : [st?.text, st?.sub];
-    const subs = (Array.isArray(sub) ? sub : []).map(v => str(v, 400)).filter(Boolean);
-    return subs.length ? [str(t, 2000), subs] : str(t, 2000);
-  }).filter(st => Array.isArray(st) ? true : !!st);
-  if (!groups.length && !steps.length) return null;
-  const nu = x.nutrition && typeof x.nutrition === "object" ? x.nutrition : {};
-  const n = Array.isArray(x.n) ? [0, 1, 2, 3].map(i => num(x.n[i])) : [num(nu.kcal), num(nu.protein), num(nu.carbs), num(nu.fat)];
-  const tags = Array.isArray(x.tags) ? x.tags.map(t => str(t, 40).toLowerCase()).filter(Boolean).slice(0, 15).join(" ") : str(x.tags, 400);
-  return {
-    title, kind: x.kind === "suess" ? "suess" : "herzhaft", meat: !!x.meat,
-    yield: str(x.yield, 60), per: str(x.per, 60), approx: !!x.approx, n, tags, groups, steps
-  };
-}
-
-/* ---------- Der Rezept-Leser ---------- */
-const BUL = /^[◦•\-–—*▪●·○◆►✓✔]\s*/;
-const H_ING = /^(zutaten|ingredients|du brauchst|das brauchst du|einkaufsliste)\b.*$/i;
-const H_STEPS = /^(zubereitung|anleitung|so geht'?s|so wird'?s gemacht|schritte|instructions|method|zubereiten)\b.*$/i;
-const H_NUT = /^(nährwerte|naehrwerte|nährwertangaben|makros|macros|nutrition)\b/i;
-const MEAT_RE = /hahnchen|chicken|huhn|huhner|rinder|rindfleisch|beef|schwein|pork|schinken|speck|bacon|hackfleisch|(^|[^a-z])hack([^a-z]|$)|faschiert|gehacktes|pute|truthahn|lamm|wurst|salami|chorizo|kebab|gyros|steak|sardell|thunfisch|lachs|fisch|garnele|shrimp|prosciutto|kalb|meeresfrucht|tintenfisch|muschel|(^|[^a-z])ente([^a-z]|$)/;
-const SWEET_TITLE = /kuchen|cake|brownie|cookie|keks|muffin|pancake|pfannkuchen|palatschinke|waffel|dessert|pudding|tiramisu|(^|[^a-z])eis([^a-z]|$)|porridge|oats|granola|bananenbrot|banana bread|crumble|mousse|creme brulee|donut|zimtschnecke|cinnamon/;
-const SWEET_RE = /schoko|kakao|streusel|vanille|zucker|ahornsirup|agavendicksaft|suss|chunky flavo|puddingpulver|marmelade|nutella|beeren|banane|zimt/;
-const SAVORY_RE = /zwiebel|knoblauch|bruhe|sojasauce|senf|ketchup|tomate|chili|oregano|curry|parmesan|mozzarella|cheddar/;
-const NUT_KEY = { kcal: "kcal", kalorien: "kcal", eiweiss: "protein", protein: "protein", kohlenhydrate: "carbs", kh: "carbs", carbs: "carbs", fett: "fat", fat: "fat" };
-const NUT_LABEL = "(kcal|kalorien|eiweiss|protein|kohlenhydrate|kh|carbs|fett|fat)(?![a-z])";
-
-function readNutrition(line, r) {
-  const t = norm(line);
-  let hit = false;
-  const set = (label, val) => {
-    const key = NUT_KEY[label], v = parseFloat(val.replace(",", "."));
-    if (key && Number.isFinite(v) && r.nutrition[key] === undefined) { r.nutrition[key] = v; hit = true; }
-  };
-  for (const m of t.matchAll(new RegExp("(\\d+(?:[.,]\\d+)?)\\s*(?:g|gramm)?\\s*" + NUT_LABEL, "g"))) set(m[2], m[1]);
-  for (const m of t.matchAll(new RegExp(NUT_LABEL + "\\s*[:=]?\\s*(?:ca\\.?\\s*|~\\s*)?(\\d+(?:[.,]\\d+)?)", "g"))) set(m[1], m[2]);
-  if (hit && /(^|[^a-z])(ca|etwa|ungefahr)([^a-z]|$)|~/.test(t)) r.approx = true;
-  if (hit && !r.per) { const pm = line.match(/\bpro\s+([A-Za-zÄÖÜäöüß-]+)/i); if (pm) r.per = "pro " + pm[1]; }
-  return hit;
-}
-function readYield(text) {
-  const t = text.replace(/\s+/g, " ");
-  let m = t.match(/(?:für|ergibt|reicht für|macht)\s+(\d+)\s+(Portionen|Personen|Stück|Stk\.?)/i) || t.match(/\((\d+)\s+(Portionen|Stück)\)/i);
-  if (m) return /^(Portionen|Personen)$/i.test(m[2]) ? `${m[1]} Portionen` : `${m[1]} Stück`;
-  m = t.match(/auf\s+(\d+)\s+(?:Portionen|Meal-Prep-Boxen|Boxen|Teller|Schüsseln)/i);
-  if (m) return `${m[1]} Portionen`;
-  m = t.match(/in\s+(\d+)\s+gleich große\s+(Stücke|Portionen|Teile)/i);
-  if (m) return m[2].toLowerCase() === "portionen" ? `${m[1]} Portionen` : `${m[1]} Stück`;
-  return "";
-}
-function splitItem(line) {
-  let s = line, hint = "";
-  const pm = s.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
-  if (pm) { s = pm[1]; hint = pm[2]; }
-  const ng = s.match(/^(.*?)[,\s]+(nach (?:Geschmack|Bedarf|Belieben)|optional|zum (?:Anbraten|Garnieren|Bestreuen|Servieren))$/i);
-  if (ng && ng[1]) { s = ng[1].replace(/,\s*$/, ""); hint = [ng[2], hint].filter(Boolean).join(", "); }
-  const UNIT = "(?:kg|g|mg|ml|cl|dl|l|EL|TL|Prisen?|Tassen?|Stück|Stk\\.?|Pck\\.?|Packung(?:en)?|Päckchen|Dosen?|Bund|Zehen?|Scheiben?|Becher|cm|Handvoll|Msp\\.?|Spritzer|Schuss|Glas|Gläser)";
-  const NUM = "(?:\\d+(?:[.,]\\d+)?(?:\\s*[½¼¾⅓⅔])?|[½¼¾⅓⅔])";
-  const re = new RegExp("^((?:ca\\.\\s*)?" + NUM + "(?:\\s*[–-]\\s*" + NUM + ")?(?:\\s*" + UNIT + "(?![A-Za-zÄÖÜäöüß]))?\\.?)\\s+(.+)$", "i");
-  let amount = "", name = s;
-  const m = s.match(re);
-  if (m) { amount = m[1].trim(); name = m[2]; }
-  else {
-    const m2 = s.match(/^(etwas|eine? Prise|1 Prise|ein Schuss|eine? Handvoll)\s+(.+)$/i);
-    if (m2) { amount = ""; name = m2[2]; hint = [m2[1].toLowerCase(), hint].filter(Boolean).join(", "); }
-  }
-  const cm = name.match(/^([^,]+),\s*([a-zäöüß½¼¾\d].*)$/);
-  if (cm) { name = cm[1]; hint = [cm[2], hint].filter(Boolean).join(", "); }
-  name = name.trim();
-  return { amount, name, hint: hint.trim() };
-}
-function classify(r) {
-  const names = r.groups.flatMap(g => g.items.map(it => it.name)).join(" ");
-  const t = norm(r.title + " " + names), title = norm(r.title);
-  r.meat = MEAT_RE.test(t);
-  r.kind = !r.meat && (SWEET_TITLE.test(title) || (SWEET_RE.test(t) && !SAVORY_RE.test(t))) ? "suess" : "herzhaft";
-}
-function parseLocal(text) {
-  const lines = text.replace(/\r/g, "").split("\n").map(l => l.replace(/[ \t]/g, " ").replace(/\s+/g, " ").trim());
-  const isMeta = l => !l || BUL.test(l) || /^\d/.test(l) || H_NUT.test(l) || H_STEPS.test(l) || /^rezepte?:?$/i.test(l);
-  let zi = lines.map((l, i) => H_ING.test(l) && l.length < 40 ? i : -1).filter(i => i >= 0);
-  const hasHeader = zi.length > 0;
-  let starts;
-  if (hasHeader) {
-    // Titel = erste Zeile des Absatzes über "Zutaten" (Beschreibungszeilen darunter werden übersprungen)
-    starts = zi.map((i, k) => {
-      const floor = k ? zi[k - 1] : -1;
-      let t = i - 1;
-      while (t > floor && isMeta(lines[t])) t--;
-      if (t <= floor) return -1;
-      while (t - 1 > floor && !isMeta(lines[t - 1])) t--;
-      return t;
-    });
-  } else {
-    const t0 = lines.findIndex(Boolean);
-    if (t0 < 0) return [];
-    zi = [t0]; starts = [t0];
-  }
-  return starts.map((st, k) => {
-    const end = k + 1 < starts.length ? (starts[k + 1] >= 0 ? starts[k + 1] : zi[k + 1]) : lines.length;
-    const title = (st >= 0 ? lines[st] : "Neues Rezept").replace(/^(high[\s-]?protein|rezept:?)\s+/i, "").replace(/\s*\(\d+\s*(Portionen|Stück|Personen)\)\s*$/i, "").replace(/[:!]+$/, "").trim() || "Neues Rezept";
-    const r = { title, groups: [], steps: [], nutrition: {}, approx: false, per: "", yield: "" };
-    const pre = hasHeader && st >= 0 ? lines.slice(st + 1, zi[k]) : [];
-    for (const l of pre) if (l) readNutrition(l, r);
-    // Abschnitte bestimmen
-    const ing = [], stp = [], nut = [];
-    let mode = "ing";
-    for (let i = zi[k] + 1; i < end; i++) {
-      const raw = lines[i];
-      if (!raw) continue;
-      if (H_STEPS.test(raw) && raw.length < 40) { mode = "steps"; continue; }
-      const nm = raw.match(/^(?:nährwerte|naehrwerte|nährwertangaben|makros|macros|nutrition)\b[^(]*(?:\((.*?)\))?/i);
-      if (nm) {
-        mode = "nut";
-        if (nm[1]) { if (/\bca\.?/i.test(nm[1])) r.approx = true; const p = nm[1].replace(/,?\s*ca\.?/i, "").trim(); if (p) r.per = /^pro\b/i.test(p) ? p : "pro " + p; }
-        readNutrition(raw, r);
-        continue;
-      }
-      const nt = norm(raw);
-      const nutLike = !/^\d+[.)]\s/.test(raw) && (/\d\s*(kcal|kalorien)(?![a-z])|(kcal|kalorien)\s*:?\s*\d/.test(nt) || (nt.match(new RegExp(NUT_LABEL, "g")) || []).length >= 2 && /\d/.test(nt));
-      (nutLike ? nut : mode === "ing" ? ing : mode === "steps" ? stp : nut).push(raw);
+function parse(text) {
+  const L = text.split("\n").map(l => l.replace(/\s+/g, " ").trim());
+  const meta = l => !l || BUL.test(l) || /^\d/.test(l) || Object.values(HEAD).some(h => h.test(l));
+  let z = L.flatMap((l, i) => HEAD.ing.test(l) && l.length < 40 ? [i] : []);
+  const head = z.length > 0;
+  if (!head) z = [L.findIndex(Boolean)];
+  if (z[0] < 0) return [];
+  // Titel = erste Zeile des Absatzes über "Zutaten"
+  const ts = z.map((i, k) => { if (!head) return i; const f = k ? z[k - 1] : -1; let s = i - 1; while (s > f && meta(L[s])) s--; while (s - 1 > f && !meta(L[s - 1])) s--; return s > f ? s : -1; });
+  return z.map((i, k) => {
+    const s = ts[k], end = k + 1 < z.length ? (ts[k + 1] < 0 ? z[k + 1] : ts[k + 1]) : L.length;
+    const r = { title: s < 0 ? "Neues Rezept" : L[s].replace(/^(high[\s-]?protein|rezept:?)\s+/i, "").replace(/\s*\(\d+ \w+\)$|[:!]+$/g, ""), kind: "herzhaft", meat: false, yield: "", per: "", approx: false, n: [null, null, null, null], groups: [], steps: [] };
+    const sec = { ing: [], steps: [], nut: [] };
+    for (const l of head && s >= 0 ? L.slice(s + 1, i) : []) { const y = l.match(/^ergibt:?\s+(.+)/i); if (y) r.yield = y[1]; else if (looksNut(l)) sec.nut.push(l); }
+    let mode = "ing", g, cur;
+    for (const l of L.slice(i + 1, end)) {
+      if (!l) continue;
+      const h = l.length < 40 && Object.keys(HEAD).find(k => HEAD[k].test(l));
+      if (h) { mode = h; if (h == "nut") sec.nut.push(l); }
+      else sec[!NUM.test(l) && looksNut(l) ? "nut" : mode].push(l);
     }
-    // Zutaten
-    const bulleted = ing.some(l => BUL.test(l));
-    let g = null;
-    for (const raw of ing) {
-      const bul = BUL.test(raw), line = raw.replace(BUL, "").trim();
-      if (!line) continue;
-      const header = bulleted ? (!bul && !/^\d/.test(line)) : (/:$/.test(line) || /^für\s+(die|den|das)\s/i.test(line));
-      if (header && line.length < 60) {
-        let name = line.replace(/:$/, ""), note = "";
-        const pm = name.match(/^(.*?)\s*\((.*)\)\s*:?$/);
-        if (pm) { name = pm[1]; note = pm[2]; }
-        name = name.replace(/^für\s+(die|den|das)\s+/i, "");
-        g = { name: name.charAt(0).toUpperCase() + name.slice(1), note, items: [] };
-        r.groups.push(g);
-      } else {
-        if (!g) { g = { name: "", note: "", items: [] }; r.groups.push(g); }
-        g.items.push(splitItem(line));
-      }
+    const bul = sec.ing.some(l => BUL.test(l));
+    for (const raw of sec.ing) { // Zeilen ohne Aufzählungszeichen sind Zwischenüberschriften ("Teig", "Für die Füllung:")
+      const l = raw.replace(BUL, "");
+      if (l.length < 60 && (bul ? !BUL.test(raw) && !/^\d/.test(l) : /:$|^für (die|den|das) /i.test(l))) {
+        const [, name, note = ""] = l.replace(/^für (die|den|das) /i, "").match(/^(.*?)\s*(?:\((.*)\))?:?$/);
+        r.groups.push(g = [name.replace(/^./, c => c.toUpperCase()), note, []]);
+      } else { if (!g) r.groups.push(g = ["", "", []]); g[2].push(item(l)); }
     }
-    r.groups = r.groups.filter(gr => gr.items.length);
-    // Zubereitung
-    const numbered = stp.some(l => /^(\d+[.):]|schritt\s*\d+:?)\s*/i.test(l) && !BUL.test(l));
-    let step = null;
-    for (const raw of stp) {
-      const bul = BUL.test(raw), line = raw.replace(BUL, "").trim();
-      if (!line) continue;
-      if (!numbered) { r.steps.push({ text: line, sub: [] }); continue; }
-      const sm = !bul && line.match(/^(?:\d+[.):]|schritt\s*\d+:?)\s*(.*)$/i);
-      if (sm) { step = { text: sm[1], sub: [] }; r.steps.push(step); }
-      else if (step && bul) step.sub.push(line);
-      else if (step) step.text += " " + line;
-      else { step = { text: line, sub: [] }; r.steps.push(step); }
+    r.groups = r.groups.filter(g => g[2].length);
+    const numbered = sec.steps.some(l => NUM.test(l));
+    for (const raw of sec.steps) { // nummerierte Schritte; Aufzählungen darunter werden Unterpunkte
+      const l = raw.replace(BUL, ""), b = BUL.test(raw);
+      if (!numbered || !b && NUM.test(l)) r.steps.push(cur = [l.replace(NUM, ""), []]);
+      else if (cur) b ? cur[1].push(l) : cur[0] += " " + l;
+      else r.steps.push(cur = [l, []]);
     }
-    r.steps = r.steps.filter(s => s.text || s.sub.length);
-    // Nährwerte
-    for (const raw of nut) readNutrition(raw.replace(BUL, ""), r);
-    if (r.nutrition.kcal === undefined) for (const raw of stp) readNutrition(raw, r);
-    // Ergibt, Kategorie
-    r.yield = readYield([st >= 0 ? lines[st] : "", ...pre, ...stp].join(" "));
-    classify(r);
+    r.steps = r.steps.map(([t, sub]) => sub.length ? [t, sub] : t);
+    sec.nut.forEach(l => nutr(l, r));
+    const y = ((L[s] || "") + " " + sec.steps.join(" ")).match(/(?:für|auf|\()\s*(\d+)\s+(?:Portionen|Personen|Meal-Prep-Boxen)/i);
+    if (!r.yield && y) r.yield = y[1] + " Portionen";
+    const words = norm(r.title + " " + r.groups.flatMap(g => g[2].map(x => x[1])).join(" "));
+    r.meat = MEAT.test(words);
+    r.kind = !r.meat && (SWEET.test(norm(r.title)) || SWEETISH.test(words) && !SAVORY.test(words)) ? "suess" : "herzhaft";
     return r;
   });
 }
 
-/* ---------- Speicher ---------- */
-const LOCAL_KEY = "naehrwerk:recipes:v1";
-const localBackend = {
-  read() { try { const v = JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } },
-  write(all) { localStorage.setItem(LOCAL_KEY, JSON.stringify(all)); },
-  async save(id, body) { const all = this.read().filter(x => x.id !== id); all.push({ ...body, id }); this.write(all); loadLocal(); },
-  async remove(id) { this.write(this.read().filter(x => x.id !== id)); loadLocal(); }
-};
-function loadLocal() {
-  uploaded = localBackend.read().map(d => {
-    const r = normalize(d);
-    if (!r || typeof d.id !== "string" || !/^[a-z0-9-]{1,80}$/.test(d.id)) return null;
-    r.id = d.id; r.user = true;
-    return prepare(r);
-  }).filter(Boolean);
-  onUploadedChange();
+/* ---------- Daten (alles im Browser gespeichert) ---------- */
+const KEY = "naehrwerk:v2", MINE = "naehrwerk:recipes:v1"; // Namen bleiben, damit nichts verloren geht
+const st = Object.assign({ have: {}, done: {} }, get(KEY, {}));
+const FILTERS = { alle: ["Alle", () => 1], fleisch: ["Fleisch", r => r.meat], vegetarisch: ["Vegetarisch", r => !r.meat], suess: ["Süß", r => r.kind == "suess"] };
+let base = [], mine = get(MINE, []), all = [], filter = "alle", cur = null, pending = [], homeY = 0;
+const q = $("#q"), up = $("#up");
+
+function build() {
+  all = [...base, ...mine.map(r => ({ ...r, mine: true }))];
+  for (const r of all) r.idx = norm([r.title, r.meat ? "fleisch" : "vegetarisch", r.kind == "suess" ? "süß" : "herzhaft", ...r.groups.flat(2)].join(" "));
 }
-function dbBackend(db) {
-  return {
-    save: (id, body) => db.doc(`recipes/${id}`).set(body),
-    remove: id => db.doc(`recipes/${id}`).delete()
-  };
+function bar(r) { // Anteil von Eiweiß, Kohlenhydraten und Fett an den Kalorien
+  const [, p, c, f] = r.n;
+  return p == null || c == null || f == null ? "" : `<span class="bar">${[p * 4, c * 4, f * 9].map(v => `<i style="flex:${v}"></i>`).join("")}</span>`;
 }
 
-/* ---------- Hochladen-Fenster ---------- */
-function setMsg(el, text, isErr) { el.textContent = text || ""; el.classList.toggle("err", !!isErr); }
-function updateGo() { upGo.disabled = !upText.value.trim(); }
-function showStep(step) {
-  $("#up-input-step").hidden = step !== "input";
-  $("#up-preview-step").hidden = step !== "preview";
-  $("#sheet-title").textContent = step === "preview" ? (pending.length === 1 ? "Passt das so?" : `${pending.length} Rezepte erkannt`) : "Rezept hochladen";
-  $(".sheet-body").scrollTop = 0;
-}
-function openSheet() {
-  sheet.hidden = false;
-  document.documentElement.style.overflow = "hidden";
-  showStep("input");
-  setMsg(upMsg, "");
-  updateGo();
-  setTimeout(() => upText.focus(), 60);
-}
-function closeSheet(reset) {
-  sheet.hidden = true;
-  document.documentElement.style.overflow = "";
-  if (reset) { upText.value = ""; pending = []; }
+/* ---------- Startseite ---------- */
+function renderHome() {
+  const words = norm(q.value).split(/\s+/).filter(Boolean), hit = r => words.every(w => r.idx.includes(w));
+  const ps = all.map(r => r.n[1]).filter(v => v != null);
+  $("#count").textContent = `${all.length} Rezepte · Ø ${Math.round(ps.reduce((a, b) => a + b, 0) / ps.length || 0)} g Eiweiß`;
+  $("[data-act=clear]").hidden = !q.value;
+  $("#chips").innerHTML = Object.entries(FILTERS).map(([k, [label, f]]) => `<button class="chip" data-act="filter" data-v="${k}" aria-pressed="${k == filter}">${label}<span>${all.filter(r => f(r) && hit(r)).length}</span></button>`).join("");
+  const list = all.filter(r => FILTERS[filter][1](r) && hit(r)).sort((a, b) => a.title.localeCompare(b.title, "de"));
+  const row = r => `<a class="row" href="#${r.id}"><div><h3>${esc(r.title)}</h3><p>${[r.n[0] != null && (r.approx ? "ca. " : "") + fmt(r.n[0]) + " kcal", r.yield].filter(Boolean).map(esc).join(" · ")}</p>${bar(r)}</div>${ic("next")}</a>`;
+  $("#list").innerHTML = list.length ? [["herzhaft", "Herzhaft"], ["suess", "Süß"]].map(([k, label]) => {
+    const rs = list.filter(r => r.kind == k);
+    return rs.length ? `<h2 class="sec">${label}</h2>${rs.map(row).join("")}` : "";
+  }).join("") : `<div class="empty">Nichts gefunden${q.value ? ` für „${esc(q.value.trim())}“` : ""}.<button class="line" data-act="reset">Suche zurücksetzen</button></div>`;
 }
 
-function convert() {
-  const text = upText.value.trim();
-  if (!text) return;
-  setMsg(upMsg, "");
-  pending = parseLocal(text).map(normalize).filter(Boolean);
-  if (!pending.length) {
-    setMsg(upMsg, "Kein Rezept erkannt. Am besten klappt es mit Name, „Zutaten“ und „Zubereitung“ im Text.", true);
-    return;
-  }
-  setMsg($("#pv-msg"), "");
-  renderPreview();
-  showStep("preview");
+/* ---------- Rezept ---------- */
+function renderDetail(r) {
+  const have = new Set(st.have[r.id]), done = new Set(st.done[r.id]), g = v => v == null ? "–" : `${fmt(v)}<small>g</small>`;
+  $("#detail").innerHTML = `
+    <header class="top g"><a href="#">${ic("back")}Rezepte</a><span>${esc(r.title)}</span></header>
+    <div class="g in">
+      <h1 class="title">${esc(r.title)}</h1>${r.yield ? `<p class="yield">Ergibt ${esc(r.yield)}</p>` : ""}
+      ${r.n.some(v => v != null) ? `<section class="nutri"><div><b>${fmt(r.n[0])}</b><span>kcal</span></div><div><b>${g(r.n[1])}</b><span><i></i>Eiweiß</span></div><div><b>${g(r.n[2])}</b><span><i></i>Kohlenh.</span></div><div><b>${g(r.n[3])}</b><span><i></i>Fett</span></div>${bar(r)}<p>${esc((r.per || "Portionsgröße nicht angegeben") + (r.approx ? " · ca." : ""))}</p></section>` : ""}
+      <h2 class="block">Zutaten</h2>
+      ${r.groups.map(([name, note, items], gi) => (name || note ? `<h3 class="grp">${esc(name)}<small>${esc(note)}</small></h3>` : "") + items.map(([a, n, h], ii) =>
+        `<button class="ing" data-act="have" data-k="${gi}-${ii}" aria-pressed="${have.has(`${gi}-${ii}`)}"><span class="box">${ic("check")}</span><span class="amt">${esc(a || "–")}</span><span>${esc(n)}${h ? `<small>${esc(h)}</small>` : ""}</span></button>`).join("")).join("")}
+      <h2 class="block">Zubereitung</h2>
+      <ol>${r.steps.map((s, i) => { const [t, sub] = [].concat(s); return `<li class="step" role="button" tabindex="0" data-act="done" data-k="${i}" aria-pressed="${done.has(i)}"><span class="num"><span>${i + 1}</span>${ic("check")}</span><div>${esc(t)}${sub ? `<ul>${sub.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div></li>`; }).join("")}</ol>
+      <div class="end"><a href="#">Zurück zu allen Rezepten</a><button class="line" data-act="undone">Schritte zurücksetzen</button>${r.mine ? `<button class="line danger" data-act="del">Rezept löschen</button>` : ""}</div>
+    </div>
+    <div class="cart g"><div><p></p><button data-act="unhave">Zurücksetzen</button><button data-act="copy">Liste kopieren</button></div></div>`;
+  update();
+}
+function update() { // Leiste unten: was noch fehlt
+  const have = (st.have[cur.id] || []).length, miss = cur.groups.reduce((a, g) => a + g[2].length, 0) - have;
+  $(".cart").hidden = !have;
+  $(".cart p").innerHTML = miss ? `<b>${miss}</b> fehl${miss == 1 ? "t" : "en"}` : "Alles da";
+  $("[data-act=copy]").hidden = !miss;
+  $("[data-act=undone]").hidden = !(st.done[cur.id] || []).length;
+}
+function toggle(kind, k, b) {
+  const s = new Set(st[kind][cur.id]);
+  s.has(k) ? s.delete(k) : s.add(k);
+  st[kind][cur.id] = [...s]; put(KEY, st);
+  b.setAttribute("aria-pressed", s.has(k)); update();
 }
 
-function renderPreview() {
-  $("#pv-list").innerHTML = pending.map((r, i) => {
-    const ni = r.groups.reduce((a, g) => a + g[2].length, 0);
-    const meta = [`${ni} ${ni === 1 ? "Zutat" : "Zutaten"}`, `${r.steps.length} ${r.steps.length === 1 ? "Schritt" : "Schritte"}`,
-      typeof r.n[0] === "number" ? `${fmt(r.n[0])} kcal` : "",
-      typeof r.n[1] === "number" ? `${fmt(r.n[1])} g Eiweiß` : ""].filter(Boolean).join(" · ");
-    const dup = ALL.some(x => norm(x.title) === norm(r.title));
-    const seg = (key, val, label) => `<button type="button" data-i="${i}" data-set="${key}" data-v="${val}" aria-pressed="${String(r[key]) === val}">${label}</button>`;
-    return `<div class="pv-item">
-      <div class="pv-top">
-        <input class="pv-title" data-i="${i}" value="${esc(r.title)}" aria-label="Name des Rezepts" autocomplete="off">
-        ${pending.length > 1 ? `<button type="button" class="icon-btn" data-rm="${i}" aria-label="Dieses Rezept nicht speichern"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>` : ""}
-      </div>
-      <div class="segs">
-        <div class="seg" role="group" aria-label="Art">${seg("kind", "herzhaft", "Herzhaft")}${seg("kind", "suess", "Süß")}</div>
-        <div class="seg" role="group" aria-label="Fleisch">${seg("meat", "true", "Fleisch")}${seg("meat", "false", "Vegetarisch")}</div>
-      </div>
-      <p class="pv-meta">${esc(meta)}</p>
-      ${dup ? `<p class="pv-warn">Ein Rezept mit diesem Namen gibt es schon.</p>` : ""}
-    </div>`;
+/* ---------- Hochladen ---------- */
+const msg = m => $("#msg").textContent = m || "";
+const canConvert = () => $("[data-act=convert]").disabled = !up.value.trim();
+function step(s) { $("#s-in").hidden = s != "in"; $("#s-pv").hidden = s == "in"; msg(); if (s == "in") $("#sh").textContent = "Rezept hochladen"; }
+function sheet(on) { $("#sheet").hidden = !on; document.documentElement.style.overflow = on ? "hidden" : ""; if (on) { step("in"); canConvert(); up.focus(); } }
+function preview() {
+  step("pv");
+  $("#sh").textContent = pending.length > 1 ? `${pending.length} Rezepte erkannt` : "Passt das so?";
+  $("[data-act=store]").textContent = pending.length > 1 ? `${pending.length} Rezepte speichern` : "Speichern";
+  $("#pv").innerHTML = pending.map((r, i) => {
+    const seg = (k, v, label) => `<button data-act="set" data-i="${i}" data-k="${k}" data-v="${v}" aria-pressed="${String(r[k]) == v}">${label}</button>`;
+    return `<div class="pv"><div><input data-i="${i}" value="${esc(r.title)}" aria-label="Name des Rezepts">${pending.length > 1 ? `<button class="icon" data-act="rm" data-i="${i}" aria-label="Nicht speichern">${ic("x")}</button>` : ""}</div>
+      <div><span class="seg">${seg("kind", "herzhaft", "Herzhaft")}${seg("kind", "suess", "Süß")}</span><span class="seg">${seg("meat", "true", "Fleisch")}${seg("meat", "false", "Vegetarisch")}</span></div>
+      <p>${r.groups.reduce((a, g) => a + g[2].length, 0)} Zutaten · ${r.steps.length} Schritte${r.n[0] != null ? ` · ${fmt(r.n[0])} kcal` : ""}</p>
+      ${all.some(x => norm(x.title) == norm(r.title)) ? `<p class="danger">Ein Rezept mit diesem Namen gibt es schon.</p>` : ""}</div>`;
   }).join("");
-  const save = $("#pv-save");
-  save.disabled = !pending.length;
-  save.textContent = pending.length > 1 ? `${pending.length} Rezepte speichern` : "Speichern";
 }
 
-async function saveAll() {
-  if (!backend || !pending.length) return;
-  const save = $("#pv-save");
-  save.disabled = true; save.innerHTML = '<span class="spin" aria-hidden="true"></span>Speichert';
-  setMsg($("#pv-msg"), "");
-  const taken = new Set(ALL.map(r => r.id));
-  const saved = [];
-  try {
-    for (const r of pending) {
-      r.title = r.title.trim() || "Rezept";
-      const base = slugify(r.title);
-      let id = base, k = 2;
-      while (taken.has(id)) id = `${base}-${k++}`;
-      taken.add(id);
-      await backend.save(id, {
-        v: 1, created: Date.now(), title: r.title, kind: r.kind, meat: r.meat, yield: r.yield, per: r.per,
-        approx: r.approx, n: r.n, tags: r.tags, groups: r.groups, steps: r.steps
-      });
-      saved.push(id);
-    }
-  } catch (e) {
-    pending = pending.slice(saved.length);
-    renderPreview();
-    const code = e?.code || e?.name;
-    setMsg($("#pv-msg"), code === "quota_exceeded" || code === "QuotaExceededError" ? "Der Speicher ist voll. Lösch ein paar Rezepte und versuch es nochmal."
-      : code === "invalid_argument" ? "Speichern ging nicht. Rezepte hinzufügen kann nur, wer die App bearbeiten darf."
-      : "Speichern hat nicht geklappt. Versuch es nochmal.", true);
-    return;
+/* ---------- Klicks: data-act="…" auf einem Element ruft act[…] auf ---------- */
+const act = {
+  filter: b => { filter = b.dataset.v; renderHome(); },
+  clear: () => { q.value = ""; renderHome(); q.focus(); },
+  reset: () => { q.value = ""; filter = "alle"; renderHome(); },
+  have: b => toggle("have", b.dataset.k, b),
+  done: b => toggle("done", +b.dataset.k, b),
+  unhave: () => { delete st.have[cur.id]; put(KEY, st); $$(".ing").forEach(b => b.setAttribute("aria-pressed", false)); update(); },
+  undone: () => { delete st.done[cur.id]; put(KEY, st); $$(".step").forEach(b => b.setAttribute("aria-pressed", false)); update(); },
+  copy: () => {
+    const have = new Set(st.have[cur.id]);
+    const list = cur.groups.flatMap((g, gi) => g[2].filter((_, ii) => !have.has(`${gi}-${ii}`)).map(([a, n]) => `– ${a ? a + " " : ""}${n}`));
+    Promise.resolve().then(() => navigator.clipboard.writeText(`Einkaufsliste · ${cur.title}\n${list.join("\n")}`)).then(() => toast("Einkaufsliste kopiert"), () => toast("Kopieren ging nicht"));
+  },
+  del: b => {
+    if (!b.dataset.sure) return b.dataset.sure = b.textContent = "Wirklich löschen?";
+    mine = mine.filter(r => r.id != cur.id); put(MINE, mine); build(); toast("Rezept gelöscht"); location.hash = "";
+  },
+  upload: () => sheet(true),
+  close: () => sheet(false),
+  paste: () => Promise.resolve().then(() => navigator.clipboard.readText()).then(t => { up.value = t; canConvert(); }, () => msg("Einfügen ging nicht. Halte im Feld gedrückt und wähle „Einsetzen“.")),
+  convert: () => { pending = parse(up.value); pending.length ? preview() : msg("Kein Rezept erkannt. Am besten klappt es mit Name, „Zutaten“ und „Zubereitung“."); },
+  edit: () => step("in"),
+  rm: b => { pending.splice(b.dataset.i, 1); preview(); },
+  set: b => { const v = b.dataset.v; pending[b.dataset.i][b.dataset.k] = v == "true" ? true : v == "false" ? false : v; preview(); },
+  store: () => {
+    const ids = new Set(all.map(r => r.id));
+    const add = pending.map(r => { let id = slug(r.title), n = 1; while (ids.has(id)) id = `${slug(r.title)}-${++n}`; ids.add(id); return { ...r, title: r.title.trim() || "Neues Rezept", id }; });
+    if (!put(MINE, [...mine, ...add])) return msg("Speichern ging nicht. Der Speicher ist voll.");
+    mine.push(...add); build(); sheet(false); up.value = "";
+    toast(add.length > 1 ? `${add.length} Rezepte gespeichert` : "Rezept gespeichert");
+    add.length == 1 ? location.hash = add[0].id : renderHome();
   }
-  closeSheet(true);
-  toast(saved.length === 1 ? "Rezept gespeichert" : `${saved.length} Rezepte gespeichert`);
-  if (saved.length === 1) location.hash = saved[0];
-}
-
-async function deleteCurrent() {
-  const r = current;
-  if (!backend || !r?.user) return;
-  try {
-    await backend.remove(r.id);
-    delete store.data.have[r.id]; delete store.data.done[r.id]; store.save();
-    toast("Rezept gelöscht");
-    goHome();
-  } catch (e) {
-    toast("Löschen hat nicht geklappt");
-  }
-}
-
-$("#open-upload").addEventListener("click", openSheet);
-sheet.addEventListener("click", e => {
-  if (e.target.closest("[data-close]")) { closeSheet(false); return; }
-  const rm = e.target.closest("[data-rm]");
-  if (rm) { pending.splice(Number(rm.dataset.rm), 1); renderPreview(); showStep(pending.length ? "preview" : "input"); return; }
-  const sb = e.target.closest("[data-set]");
-  if (sb) {
-    const r = pending[Number(sb.dataset.i)];
-    r[sb.dataset.set] = sb.dataset.set === "meat" ? sb.dataset.v === "true" : sb.dataset.v;
-    if (sb.dataset.set === "kind" && r.kind === "suess") r.meat = false;
-    renderPreview();
-  }
+};
+document.addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (b) act[b.dataset.act](b); });
+document.addEventListener("input", e => { const t = e.target; if (t == q) renderHome(); else if (t == up) canConvert(); else if (t.dataset.i) pending[t.dataset.i].title = t.value; });
+document.addEventListener("keydown", e => {
+  if (e.key == "Escape") sheet(false);
+  if ((e.key == "Enter" || e.key == " ") && e.target.dataset?.act == "done") { e.preventDefault(); e.target.click(); }
 });
-sheet.addEventListener("input", e => {
-  const t = e.target.closest(".pv-title");
-  if (t) pending[Number(t.dataset.i)].title = t.value;
-});
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet(false); });
-upText.addEventListener("input", updateGo);
-upGo.addEventListener("click", convert);
-$("#pv-back").addEventListener("click", () => showStep("input"));
-$("#pv-save").addEventListener("click", saveAll);
+$("#sf").onsubmit = e => { e.preventDefault(); q.blur(); };
 
-/* Datei-Knopf (in Claude) bzw. Einfügen-Knopf (eigenständige App) */
-const canPaste = !IN_CLAUDE && !!(navigator.clipboard && navigator.clipboard.readText);
-if (canPaste) {
-  $("#up-pick-text").textContent = "Einfügen";
-  $("#up-pick-label").addEventListener("click", async e => {
-    e.preventDefault();
-    try {
-      const t = await navigator.clipboard.readText();
-      if (t && t.trim()) { upText.value = t; updateGo(); setMsg(upMsg, ""); }
-      else setMsg(upMsg, "In der Zwischenablage ist kein Text.", true);
-    } catch (err) { setMsg(upMsg, "Einfügen ging nicht. Halte im Feld gedrückt und wähle „Einsetzen“.", true); }
-  });
+/* ---------- Navigation (#rezept-name), Bildschirm an beim Kochen ---------- */
+let lock;
+const wake = on => on ? navigator.wakeLock?.request("screen").then(l => lock = l, () => {}) : lock?.release();
+function route() {
+  const r = all.find(x => x.id == decodeURIComponent(location.hash.slice(1)));
+  if (r && !cur) homeY = scrollY;
+  $("#home").hidden = !!r; $("#detail").hidden = !r;
+  if (r) { cur = r; renderDetail(r); scrollTo(0, 0); } else { cur = null; renderHome(); scrollTo(0, homeY); }
+  document.title = r ? `${r.title} · Meal Prep` : "Meal Prep";
+  wake(r); onScroll();
 }
-upPick.addEventListener("change", async () => {
-  const f = upPick.files[0];
-  upPick.value = "";
-  if (!f) return;
-  if (f.type.startsWith("text/") || /\.(txt|md)$/i.test(f.name)) {
-    try { upText.value = (await f.text()).slice(0, 100000); } catch (err) { setMsg(upMsg, "Die Datei konnte nicht gelesen werden.", true); }
-    updateGo();
-  } else {
-    setMsg(upMsg, "Nur Textdateien.", true);
-  }
-});
-
-/* Gespeicherte Rezepte laden */
-function onUploadedChange() {
-  ALL = RECIPES.concat(uploaded);
-  updateCount();
-  const id = decodeURIComponent(location.hash.slice(1));
-  if (current && current.user && !ALL.some(r => r.id === current.id)) { goHome(); return; }
-  if (detail.hidden && id && ALL.some(r => r.id === id)) { route(); return; }
-  if (!home.hidden) renderHome();
+function onScroll() {
+  const tb = $("#tb"), h = $(".title");
+  tb.classList.toggle("stuck", tb.getBoundingClientRect().top < parseFloat(getComputedStyle(tb).top) + 1);
+  if (cur && h) $(".top").classList.toggle("scrolled", h.getBoundingClientRect().bottom < 56);
 }
-function useLocal() {
-  backend = localBackend;
-  loadLocal();
-  $("#open-upload").hidden = false;
-}
-if (!IN_CLAUDE) {
-  useLocal();
-} else {
-  (async () => {
-    const db = await window.claude.use("db").catch(() => null);
-    if (!db) { useLocal(); return; }
-    backend = dbBackend(db);
-    $("#open-upload").hidden = false;
-    db.collection("recipes").onSnapshot(snap => {
-      uploaded = snap.docs.map(d => {
-        const r = normalize(d.data());
-        if (!r) return null;
-        r.id = d.id; r.user = true;
-        return prepare(r);
-      }).filter(Boolean);
-      onUploadedChange();
-    }, () => {});
-  })();
-}
+addEventListener("scroll", onScroll, { passive: true });
+addEventListener("hashchange", route);
+document.addEventListener("visibilitychange", () => cur && !document.hidden && wake(true));
+fetch("rezepte.txt").then(r => r.text()).catch(() => "").then(t => { base = parse(t).map(r => ({ ...r, id: slug(r.title) })); build(); route(); });
 </script>

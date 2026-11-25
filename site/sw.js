@@ -1,28 +1,10 @@
-// Offline-Cache für Meal Prep (Version 20261125144820)
-const CACHE = "naehrwerk-20261125144820";
-const CORE = ["./", "index.html", "start.jpg", "manifest.webmanifest", "icon-192.png", "icon-512.png", "favicon-32.png"];
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
-});
-self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
-});
-self.addEventListener("fetch", e => {
-  const req = e.request;
-  if (req.method !== "GET") return;
-  const url = new URL(req.url);
-  if (req.mode === "navigate") {
-    e.respondWith(fetch(req).then(res => {
-      const copy = res.clone(); caches.open(CACHE).then(c => c.put("index.html", copy)); return res;
-    }).catch(() => caches.match("index.html")));
-    return;
-  }
-  const sameOrigin = url.origin === location.origin;
-  const fonts = url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
-  if (!sameOrigin && !fonts) return;
-  e.respondWith(caches.open(CACHE).then(async c => {
-    const hit = await c.match(req);
-    const net = fetch(req).then(res => { if (res.ok || res.type === "opaque") c.put(req, res.clone()); return res; }).catch(() => hit);
-    return hit || net;
-  }));
-});
+const C = "mealprep-1795619112563";
+self.oninstall = e => e.waitUntil(caches.open(C).then(c => c.addAll(["./","start.jpg","rezepte.txt","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png","favicon-32.png"])).then(() => self.skipWaiting()));
+self.onactivate = e => e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x != C).map(x => caches.delete(x)))).then(() => self.clients.claim()));
+self.onfetch = e => {
+  const r = e.request, u = new URL(r.url);
+  if (r.method != "GET" || (u.origin != location.origin && !u.hostname.startsWith("fonts."))) return;
+  const net = fetch(r).then(res => { const c = res.clone(); caches.open(C).then(x => x.put(r, c)); return res; });
+  net.catch(() => {});
+  e.respondWith(r.mode == "navigate" || u.pathname.endsWith(".txt") ? net.catch(() => caches.match(r, { ignoreSearch: true }).then(h => h || caches.match("./"))) : caches.match(r).then(h => h || net));
+};
